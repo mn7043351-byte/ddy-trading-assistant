@@ -130,6 +130,52 @@ const GridIcon = ({className=""}) => <svg className={className} xmlns="http://ww
 const ListIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
 const CalendarIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
 
+
+const MatrixBackground = () => {
+    const canvasRef = useRef(null);
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%&<>'.split('');
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+        for (let x = 0; x < columns; x++) drops[x] = 1;
+        
+        const draw = () => {
+            ctx.fillStyle = 'rgba(3, 0, 20, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px Courier New';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0, 240, 255, 0.5)' : 'rgba(189, 0, 255, 0.5)'; // cyan/purple subtle
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        };
+        const interval = setInterval(draw, 50);
+        
+        const handleResize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+    
+    return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-[-1] opacity-30 pointer-events-none" />;
+};
+
 const TradingViewWidget = () => {
     const container = useRef();
     useEffect(() => {
@@ -152,8 +198,11 @@ const TradingViewWidget = () => {
             "backgroundColor": "rgba(3, 0, 20, 1)",
             "gridColor": "rgba(0, 240, 255, 0.1)",
             "hide_top_toolbar": false,
+            "hide_top_toolbar": false,
             "hide_legend": false,
             "save_image": false,
+            "allow_symbol_change": true,
+            "hide_side_toolbar": false,
             "studies": [
               "MACD@tv-basicstudies",
               "RSI@tv-basicstudies",
@@ -279,6 +328,57 @@ const EconomicCalendar = () => {
                  <h2 className="font-display text-xl tracking-[0.1em] text-white">LIVE ECONOMIC CALENDAR</h2>
             </div>
             <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
+            </div>
+        </div>
+    );
+};
+
+
+const LiveSignalFeed = ({ signals }) => {
+    if (signals.length === 0) return (
+        <div className="mt-8 cyber-panel p-4 border-t-2 border-t-cyber-yellow">
+            <div className="flex items-center gap-3 mb-2 px-2">
+                 <ZapIcon className="text-cyber-yellow animate-pulse" />
+                 <h2 className="font-display text-lg tracking-[0.1em] text-white">LIVE AI SIGNAL FEED</h2>
+            </div>
+            <div className="p-4 text-center font-mono text-gray-500">Scanning global markets for setups...</div>
+        </div>
+    );
+    
+    const getColorClass = (dir) => {
+        if(dir.includes("BUY")) return "cyber-cyan";
+        if(dir.includes("SELL")) return "cyber-pink";
+        return "gray-400";
+    };
+
+    return (
+        <div className="mt-8 cyber-panel p-4 animate-fade-in-up border-t-2 border-t-cyber-yellow shadow-[0_0_15px_rgba(252,238,10,0.1)] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-cyber-yellow/5 to-transparent pointer-events-none"></div>
+            <div className="flex items-center gap-3 mb-4 border-b border-cyber-yellow/30 pb-2 relative z-10 px-2">
+                 <ZapIcon className="text-cyber-yellow animate-pulse" />
+                 <h2 className="font-display text-lg tracking-[0.1em] text-white">LIVE AI SIGNAL FEED</h2>
+                 <span className="ml-auto text-[10px] font-mono text-cyber-yellow border border-cyber-yellow/30 bg-cyber-yellow/10 px-2 py-0.5 tracking-wider animate-pulse-slow">SCANNING ALL PAIRS</span>
+            </div>
+            
+            <div className="space-y-3 relative z-10">
+                {signals.map((sig, idx) => {
+                     const colorClass = getColorClass(sig.dir);
+                     const borderColor = colorClass === "cyber-cyan" ? "border-cyber-cyan" : colorClass === "cyber-pink" ? "border-cyber-pink" : "border-gray-400";
+                     const textColor = colorClass === "cyber-cyan" ? "text-cyber-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" : colorClass === "cyber-pink" ? "text-cyber-pink drop-shadow-[0_0_8px_rgba(255,0,60,0.8)]" : "text-gray-400";
+                     return (
+                    <div key={sig.id} className={`flex flex-wrap items-center justify-between p-3 border-l-4 ${idx === 0 ? 'bg-gray-900/90 shadow-[0_0_20px_rgba(252,238,10,0.15)] animate-pulse-slow scale-[1.01] transition-transform' : 'bg-black/50 opacity-60 hover:opacity-100'} ${borderColor} rounded-r-sm`}>
+                        <div className="flex items-center gap-4 w-1/3">
+                            <span className="font-mono text-[10px] text-gray-500 bg-black/50 px-2 py-1 rounded">{sig.time}</span>
+                            <span className="font-display font-bold text-xl text-white tracking-widest">{sig.pair}</span>
+                        </div>
+                        <div className={`w-1/3 text-center font-display font-black text-xl tracking-[0.1em] ${textColor}`}>
+                            {sig.dir}
+                        </div>
+                        <div className="w-1/3 text-right font-mono text-sm text-gray-300">
+                            ENTRY PRICE <br/><span className="font-bold text-white text-lg tracking-wider">{sig.price.toFixed(5)}</span>
+                        </div>
+                    </div>
+                )})}
             </div>
         </div>
     );
@@ -538,14 +638,54 @@ const App = () => {
     }, []);
 
     const [currentPrediction, setCurrentPrediction] = useState({
-        direction: "WAIT",
+        direction: "NEUTRAL",
         confidence: 0,
         logic: "Initializing Live Forex Matrix...",
-        timestamp: new Date()
+        timestamp: new Date(),
+        pair: "EUR/USD",
+        timeframe: "5 MIN"
     });
 
+    
+    const [strongSignals, setStrongSignals] = useState([]);
+    const signalsRef = useRef([]);
+    const tickerQuotesRef = useRef(tickerQuotes);
+    
+    useEffect(() => {
+        tickerQuotesRef.current = tickerQuotes;
+    }, [tickerQuotes]);
+
+    // Multi-pair AI Scanning Simulation
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const currentQuotes = tickerQuotesRef.current;
+            const pairs = Object.keys(currentQuotes).filter(p => currentQuotes[p].price > 0);
+            if (pairs.length === 0) return;
+            
+            if (Math.random() > 0.3) {
+                const pair = pairs[Math.floor(Math.random() * pairs.length)];
+                const data = currentQuotes[pair];
+                const strongOptions = ["BUY", "SELL", "STRONG BUY", "STRONG SELL", "NEUTRAL"];
+                const dir = strongOptions[Math.floor(Math.random() * strongOptions.length)];
+                
+                const newSignal = {
+                    id: Date.now(),
+                    pair: pair,
+                    dir: dir,
+                    price: data.price,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                };
+                
+                signalsRef.current = [newSignal, ...signalsRef.current].slice(0, 5);
+                setStrongSignals([...signalsRef.current]);
+            }
+        }, 5000); 
+        
+        return () => clearInterval(timer);
+    }, []);
+
     const [history, setHistory] = useState([]);
-    const [timeLeft, setTimeLeft] = useState(300);
+    const [timeLeft, setTimeLeft] = useState(60);
     const terminalRef = useRef(null);
     const [terminalLogs, setTerminalLogs] = useState([
         { id: 1, msg: "[SYS] DDY Trading Core Activated..." },
@@ -555,16 +695,29 @@ const App = () => {
 
     useEffect(() => {
         if (realData.price === 0) return;
-        const isBuy = realData.isGreenCandle;
-        const conf = Math.min(99, Math.floor(65 + (Math.abs(realData.momentum) * 10000)));
+        const absM = Math.abs(realData.momentum);
+        const isBuy = realData.momentum >= 0;
+        let newDir = "NEUTRAL";
+        let conf = 50;
+        let logicMsg = "Analyzing market consolidation...";
+        
+        if (absM > 0.00015) {
+            newDir = isBuy ? "STRONG BUY" : "STRONG SELL";
+            conf = Math.min(99, Math.floor(80 + (absM * 10000)));
+            logicMsg = isBuy ? "High Bullish Volume Detected. Price action breaking upper standard deviation." : "High Bearish Volume Detected. Price action breaking lower standard deviation.";
+        } else if (absM > 0.00005) {
+            newDir = isBuy ? "BUY" : "SELL";
+            conf = Math.min(79, Math.floor(60 + (absM * 10000)));
+            logicMsg = isBuy ? "Bullish momentum accumulating. Standard setup." : "Bearish momentum accumulating. Standard setup.";
+        }
+
         setCurrentPrediction(prev => {
-            const newDir = isBuy ? "BUY" : "SELL";
             if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
                 return {
                     ...prev,
                     direction: newDir,
                     confidence: conf,
-                    logic: isBuy ? "Pure Forex Analysis: Bullish pressure detected. Price > Open." : "Pure Forex Analysis: Bearish pressure detected. Price < Open.",
+                    logic: logicMsg,
                     timestamp: new Date()
                 };
             }
@@ -572,25 +725,37 @@ const App = () => {
         });
     }, [realData.isGreenCandle, realData.momentum, realData.price]);
 
+    const lastSavedWindow = useRef(-1);
+
     useEffect(() => {
         const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    setHistory(h => {
-                        const newH = [...h, {
-                            id: Date.now(),
-                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            pair: "EUR/USD",
-                            dir: currentPrediction.direction,
-                            conf: currentPrediction.confidence,
-                            result: currentPrediction.direction === (realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
-                        }];
-                        return newH.slice(-15);
-                    });
-                    return 300;
-                }
-                return prev - 1;
-            });
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const currentWindow = Math.floor(minutes / 5);
+            
+            const next5Min = Math.ceil((minutes + 1) / 5) * 5;
+            let remainingSeconds = ((next5Min - minutes - 1) * 60) + (60 - seconds);
+            if (remainingSeconds > 300) remainingSeconds = 300;
+            if (remainingSeconds === 300 && seconds === 0) remainingSeconds = 0;
+            
+            setTimeLeft(remainingSeconds);
+            
+            if (lastSavedWindow.current !== -1 && lastSavedWindow.current !== currentWindow) {
+                setHistory(h => {
+                    const newH = [...h, {
+                        id: Date.now(),
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        pair: "EUR/USD",
+                        dir: currentPrediction.direction,
+                        conf: currentPrediction.confidence,
+                        result: currentPrediction.direction.includes(realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
+                    }];
+                    return newH.slice(-15);
+                });
+            }
+            lastSavedWindow.current = currentWindow;
+            
         }, 1000);
         return () => clearInterval(timer);
     }, [currentPrediction, realData.isGreenCandle]);
@@ -624,6 +789,7 @@ const App = () => {
 
     return (
         <div className="min-h-screen flex flex-col">
+            <MatrixBackground />
             {/* Live Ticker Bar */}
             <div className="ticker-wrap py-2">
                 <div className="ticker flex gap-12">
@@ -715,21 +881,25 @@ const App = () => {
                                     <h2 className="font-display text-lg tracking-[0.1em] text-gray-200">NEXT VECTOR PREDICTION</h2>
                                 </div>
                                 
-                                <div className={`flex-1 cyber-panel p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${currentPrediction.direction === 'BUY' ? 'glow-card-buy' : currentPrediction.direction === 'SELL' ? 'glow-card-sell' : 'border-gray-500'}`}>
+                                <div className={`flex-1 cyber-panel p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${currentPrediction.direction.includes('BUY') ? 'glow-card-buy' : currentPrediction.direction.includes('SELL') ? 'glow-card-sell' : 'border-gray-500'}`}>
                                     
                                     <div className="flex justify-between items-start z-10 relative">
                                         <div>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="text-[10px] font-mono text-cyber-cyan border border-cyber-cyan/30 bg-cyber-cyan/10 px-2 py-0.5 tracking-wider">{currentPrediction.pair}</span>
+                                                <span className="text-[10px] font-mono text-cyber-yellow border border-cyber-yellow/30 bg-cyber-yellow/10 px-2 py-0.5 tracking-wider">{currentPrediction.timeframe}</span>
+                                            </div>
                                             <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Target Vector</p>
                                             <div className="flex items-center gap-3">
-                                                <h1 className={`text-6xl font-display font-black tracking-widest uppercase ${currentPrediction.direction === 'BUY' ? 'text-cyber-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]' : currentPrediction.direction === 'SELL' ? 'text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-gray-500'}`}>
+                                                <h1 className={`text-4xl lg:text-5xl font-display font-black tracking-widest uppercase ${currentPrediction.direction.includes('BUY') ? 'text-cyber-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]' : currentPrediction.direction.includes('SELL') ? 'text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-gray-500'}`}>
                                                     {currentPrediction.direction}
                                                 </h1>
-                                                {currentPrediction.direction === 'BUY' && (
+                                                {currentPrediction.direction.includes('BUY') && (
                                                     <div className="p-2 bg-cyber-cyan/10 rounded-md border border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.4)] animate-bounce">
                                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="18 15 12 9 6 15"></polyline></svg>
                                                     </div>
                                                 )}
-                                                {currentPrediction.direction === 'SELL' && (
+                                                {currentPrediction.direction.includes('SELL') && (
                                                     <div className="p-2 bg-cyber-pink/10 rounded-md border border-cyber-pink text-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.4)] animate-bounce" style={{animationDirection: 'reverse'}}>
                                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                                     </div>
@@ -755,7 +925,7 @@ const App = () => {
                                     <div className="pt-4 border-t border-gray-800 flex justify-between items-center relative z-10 mt-auto">
                                         <div className="flex items-center gap-2 text-gray-400 text-xs font-display tracking-widest">
                                             <ClockIcon className="w-4 h-4" />
-                                            TIME TO EXECUTION
+                                            SIGNAL CARD EXPIRE TIME
                                         </div>
                                         <div className="font-mono text-2xl font-bold tracking-widest text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
                                             {formatTime(timeLeft)}
@@ -769,6 +939,10 @@ const App = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
                             <IndicatorTable title="OSC DATA" data={oscillatorsData} delay="0.3s" />
                             <IndicatorTable title="MA DATA" data={maData} delay="0.4s" />
+                        </div>
+                        {/* Live AI Signal Feed Block */}
+                        <div className="animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                            <LiveSignalFeed signals={strongSignals} />
                         </div>
                     </div>
                 )}
