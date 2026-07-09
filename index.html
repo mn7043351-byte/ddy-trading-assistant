@@ -340,8 +340,7 @@ const App = () => {
         fetch(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=5min&outputsize=60&apikey=${API_KEY}`)
         .then(res => res.json())
         .then(data => {
-            if (!data.values) return;
-            // Twelve Data returns newest first. We need oldest first for SMA/RSI calculation, or just reverse it
+            if (!data || !data.values) return;
             const candles = data.values.reverse();
             const closes = candles.map(d => parseFloat(d.close));
             const currentCandle = candles[candles.length - 1];
@@ -349,12 +348,13 @@ const App = () => {
             const currentPrice = parseFloat(currentCandle.close);
             
             const calcSMA = (period) => {
+                if (closes.length < period) return 0;
                 const slice = closes.slice(-period);
                 return slice.reduce((a, b) => a + b, 0) / period;
             };
             
             let gains = 0, losses = 0;
-            for(let i = closes.length - 15; i < closes.length - 1; i++) {
+            for(let i = Math.max(0, closes.length - 15); i < closes.length - 1; i++) {
                 const diff = closes[i+1] - closes[i];
                 if (diff >= 0) gains += diff;
                 else losses -= diff;
@@ -375,7 +375,8 @@ const App = () => {
                 isGreenCandle: currentPrice >= currentOpen,
                 momentum: currentPrice - currentOpen
             }));
-        });
+        })
+        .catch(err => console.error("Error fetching REST API:", err));
 
         // Connect to Twelve Data WebSocket for Live Tick Data
         const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`);
@@ -394,7 +395,6 @@ const App = () => {
             if (msg.event === "price" && msg.price) {
                 const current = parseFloat(msg.price);
                 setRealData(prev => {
-                    // Use the open price from REST as baseline for 5m momentum
                     const open = prev.openPrice !== 0 ? prev.openPrice : current;
                     return {
                         ...prev,
@@ -506,610 +506,199 @@ const App = () => {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    return () => ws.close();
-    }, []);
-
-    const [currentPrediction, setCurrentPrediction] = useState({
-        direction: "WAIT",
-        confidence: 0,
-        logic: "Initializing Live Matrix...",
-        timestamp: new Date()
-    });
-
-    const [history, setHistory] = useState([]);
-    const [timeLeft, setTimeLeft] = useState(300);
-    const terminalRef = useRef(null);
-    const [terminalLogs, setTerminalLogs] = useState([
-        { id: 1, msg: "[SYS] DDY Trading Core Activated..." },
-        { id: 2, msg: "[API] Connected to Binance REST API for Historical Klines." },
-        { id: 3, msg: "[WS] Live 5m Kline WebSocket stream active." }
-    ]);
-
-    // Instantly react to Live Candle changes
-    useEffect(() => {
-        if (realData.price === 0) return;
-        
-        const isBuy = realData.isGreenCandle;
-        const conf = Math.min(99, Math.floor(65 + (Math.abs(realData.momentum) * 10000)));
-        
-        setCurrentPrediction(prev => {
-            const newDir = isBuy ? "BUY" : "SELL";
-            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
-                return {
-                    ...prev,
-                    direction: newDir,
-                    confidence: conf,
-                    logic: isBuy ? "5m Candle is Green (Current Price > Open). Real-time bullish pressure." : "5m Candle is Red (Current Price < Open). Real-time bearish pressure.",
-                    timestamp: new Date()
-                };
-            }
-            return prev;
-        });
-    }, [realData.isGreenCandle, realData.momentum, realData.price]);
-
-    // Timer Effect for 5m interval resets
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    // Log to history on candle close
-                    setHistory(h => {
-                        const newH = [...h, {
-                            id: Date.now(),
-                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            pair: "EUR/USD",
-                            dir: currentPrediction.direction,
-                            conf: currentPrediction.confidence,
-                            result: currentPrediction.direction === (realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
-                        }];
-                        return newH.slice(-15);
-                    });
-                    return 300;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [currentPrediction, realData.isGreenCandle]);
-
-    useEffect(() => {
-        if (terminalRef.current) {
-            terminalRef.current.scrollTo({
-                top: terminalRef.current.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    }, [terminalLogs]);
-
-    const totalSignals = history.length;
-    const wins = history.filter(h => h.result === "Win").length;
-    const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
-
-    // Derived Real Data for Tables
-    const oscillatorsData = [
-        { name: "Relative Strength Index (14)", value: realData.rsi14.toFixed(2), action: realData.rsi14 > 70 ? "Sell" : realData.rsi14 < 30 ? "Buy" : "Neutral" },
-        { name: "Current Price Delta", value: realData.momentum.toFixed(5), action: realData.momentum >= 0 ? "Buy" : "Sell" },
-    ];
-
-    const maData = [
-        { name: "Simple Moving Average (10)", value: realData.sma10.toFixed(5), action: realData.price > realData.sma10 ? "Buy" : "Sell" },
-        { name: "Simple Moving Average (20)", value: realData.sma20.toFixed(5), action: realData.price > realData.sma20 ? "Buy" : "Sell" },
-        { name: "Simple Moving Average (50)", value: realData.sma50.toFixed(5), action: realData.price > realData.sma50 ? "Buy" : "Sell" },
-    ];
-
-    // Derived Real Gauges
-    const gauges = {
-        oscillators: realData.rsi14,
-        movingAverages: realData.price > realData.sma20 ? 80 : 20,
-        summary: ((realData.rsi14) + (realData.price > realData.sma20 ? 80 : 20)) / 2
-    };
-
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
-    return () => ws.close();
-    }, []);
-
-    // Instantly react to Live Price changes
-    useEffect(() => {
-        if (livePrice.current === 0) return;
-        
-        const isBuy = livePrice.delta >= 0;
-        const conf = Math.min(99, Math.floor(75 + (Math.abs(livePrice.delta) * 5000)));
-        
-        setCurrentPrediction(prev => {
-            const newDir = isBuy ? "BUY" : "SELL";
-            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
-                return {
-                    ...prev,
-                    direction: newDir,
-                    confidence: conf,
-                    logic: isBuy ? "Live Data Analysis: Bullish momentum detected. Price is above open." : "Live Data Analysis: Bearish pressure detected. Price is below open."
-                };
-            }
-            return prev;
-        });
-    }, [livePrice]);
-
-
-    
-    // AI State
-    const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
-    const [currentPrediction, setCurrentPrediction] = useState({
-        direction: "BUY",
-        confidence: 87,
-        logic: "Oscillators neutral. EMA crossovers trigger BUY threshold on 5m timeframe.",
-        timestamp: new Date()
-    });
-    
-    // Gauge values (mocked, slowly changing)
-    const [gauges, setGauges] = useState({
-        oscillators: 52,
-        summary: 65,
-        movingAverages: 78
-    });
-
-    // History and Learning
-    const [history, setHistory] = useState([
-        { id: 1, time: "12:00", pair: "EUR/USD", dir: "BUY", conf: 82, result: "Win" },
-        { id: 2, time: "12:05", pair: "EUR/USD", dir: "SELL", conf: 76, result: "Loss" },
-        { id: 3, time: "12:10", pair: "EUR/USD", dir: "BUY", conf: 89, result: "Win" },
-        { id: 4, time: "12:15", pair: "EUR/USD", dir: "BUY", conf: 91, result: "Win" },
-    ]);
-    
-    const [terminalLogs, setTerminalLogs] = useState([
-        { id: 1, msg: "[SYS] Initializing DDY Neural Net..." },
-        { id: 2, msg: "[DATA] Connected to LIVE Server Feed (EUR/USD)." },
-    ]);
-    
-    const terminalRef = useRef(null);
-    
-    // Timer Effect
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    generateNewSignal();
-                    return 300;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-    // Randomize gauges slightly
-    useEffect(() => {
-        const jitter = setInterval(() => {
-            setGauges(prev => ({
-                oscillators: Math.min(100, Math.max(0, prev.oscillators + (Math.random() * 8 - 4))),
-                summary: Math.min(100, Math.max(0, prev.summary + (Math.random() * 6 - 3))),
-                movingAverages: Math.min(100, Math.max(0, prev.movingAverages + (Math.random() * 4 - 2))),
-            }));
-        }, 2000);
-        return () => clearInterval(jitter);
-    }, []);
-    
-    // Terminal Logs Effect
-    useEffect(() => {
-        const logMessages = [
-            "Fetching OHLCV stream > EUR/USD...",
-            "Computing Pandas-TA matrix [RSI, MACD, EMA9]...",
-            "Analyzing 5m momentum candle topology...",
-            "Executing predictive stat-models...",
-            "Evaluating t-1 candle result...",
-            "Optimizing backprop weights...",
-            "Adjusting neural net loss threshold...",
-            "Detecting micro-trend reversal signals...",
-            "Filtering out noise spikes..."
-        ];
-        
-        let logIdCounter = 3;
-        const logInterval = setInterval(() => {
-            const msg = logMessages[Math.floor(Math.random() * logMessages.length)];
-            const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
-            
-            setTerminalLogs(prev => {
-                const newLogs = [...prev, { id: logIdCounter++, msg: `[${timeStr}] ${msg}` }];
-                return newLogs.slice(-25); // Keep last 25
-            });
-        }, 3500);
-        
-        return () => clearInterval(logInterval);
-    }, []);
-
-    // Auto-scroll terminal
-    useEffect(() => {
-        if (terminalRef.current) {
-            terminalRef.current.scrollTo({
-                top: terminalRef.current.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    }, [terminalLogs]);
-
-    const generateNewSignal = () => {
-        // Use Live Market Data
-        let isBuy = Math.random() > 0.5;
-        let conf = Math.floor(Math.random() * 20) + 75;
-        
-        // Live logic override based on current candle momentum
-        if (livePrice.current !== 0) {
-            isBuy = livePrice.delta >= 0; // Buy if market is going UP, Sell if DOWN
-            // Fake confidence scaled by the size of the price delta
-            conf = Math.min(99, Math.floor(75 + (Math.abs(livePrice.delta) * 5000)));
-        }
-        
-        const logics = isBuy ? [
-            "Live Data Analysis: Bullish momentum detected. Price is above open.",
-            "Buy volume increasing. Order book leaning bullish.",
-            "Micro-trend confirms upward trajectory on 5m scale."
-        ] : [
-            "Live Data Analysis: Bearish pressure detected. Price is below open.",
-            "Sell volume spiking. Support levels breaking.",
-            "Micro-trend confirms downward trajectory on 5m scale."
-        ];
-        
-        const prevResult = Math.random() > 0.3 ? "Win" : "Loss";
-        setHistory(prev => {
-            const newHistory = [...prev, {
-                id: Date.now(),
-                time: currentPrediction.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                pair: "EUR/USD",
-                dir: currentPrediction.direction,
-                conf: currentPrediction.confidence,
-                result: prevResult
-            }];
-            return newHistory.slice(-15);
-        });
-
-        setCurrentPrediction({
-            direction: isBuy ? "BUY" : "SELL",
-            confidence: conf,
-            logic: logics[Math.floor(Math.random() * logics.length)],
-            timestamp: new Date()
-        });
-    };
-
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
-    // Stats
-    const totalSignals = history.length;
-    const wins = history.filter(h => h.result === "Win").length;
-    const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
-
-    // Mock Tables
-    const oscillatorsData = [
-        { name: "Relative Strength Index (14)", value: "54.21", action: "Neutral" },
-        { name: "Stochastic %K (14, 3, 3)", value: "78.40", action: "Sell" },
-        { name: "Commodity Channel Index (20)", value: "112.50", action: "Buy" },
-        { name: "Average Directional Index (14)", value: "22.10", action: "Neutral" },
-        { name: "Awesome Oscillator", value: "0.0045", action: "Buy" },
-        { name: "Momentum (10)", value: "0.0012", action: "Buy" },
-        { name: "MACD Level (12, 26)", value: "-0.0003", action: "Sell" },
-    ];
-
-    const maData = [
-        { name: "Exponential Moving Average (10)", value: "1.0924", action: "Buy" },
-        { name: "Simple Moving Average (10)", value: "1.0921", action: "Buy" },
-        { name: "Exponential Moving Average (20)", value: "1.0918", action: "Buy" },
-        { name: "Simple Moving Average (20)", value: "1.0915", action: "Buy" },
-        { name: "Exponential Moving Average (50)", value: "1.0930", action: "Sell" },
-        { name: "Simple Moving Average (50)", value: "1.0935", action: "Sell" },
-        { name: "Ichimoku Cloud Base Line (9, 26, 52)", value: "1.0925", action: "Neutral" },
-    ];
-
     return (
-        <div className="min-h-screen flex flex-col relative z-10">
-            {/* HEADER */}
-            <header className="bg-cyber-dark/90 backdrop-blur-md border-b-2 border-cyber-cyan/40 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-[0_0_20px_rgba(0,240,255,0.15)] animate-fade-in">
-                <div className="flex items-center gap-4 group">
-                    <div className="bg-transparent border-2 border-cyber-cyan p-2 text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.5)] group-hover:shadow-[0_0_20px_rgba(0,240,255,0.8)] transition-all duration-300">
-                        <ZapIcon className="animate-glitch" />
+        <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6">
+            
+            {/* Header / Navbar */}
+            <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-cyber-cyan/30 pb-4 mb-8">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyber-cyan/10 rounded-lg border border-cyber-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+                        <ZapIcon className="text-cyber-cyan animate-pulse" />
                     </div>
                     <div>
                         <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] uppercase">
                             DDY<span className="text-cyber-cyan">.AI</span>
                         </h1>
-                        <p className="text-[10px] font-mono text-cyber-yellow font-bold tracking-[0.3em] uppercase mt-0.5">Pred-Engine v2.4 // Online</p>
+                        <p className="text-[10px] font-mono text-cyber-yellow font-bold tracking-[0.3em] uppercase mt-0.5">Pred-Engine v3.0 // FOREX</p>
                     </div>
                 </div>
                 
-                <div className="flex gap-4">
-                    <button 
-                        onClick={() => setActiveTab("dashboard")}
-                        className={`px-6 py-2 text-sm font-display font-bold tracking-widest transition-all duration-300 flex items-center gap-2 uppercase border-2 ${activeTab === 'dashboard' ? 'bg-cyber-cyan/20 text-cyber-cyan border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.5)]' : 'bg-transparent text-gray-500 border-gray-700 hover:text-cyber-cyan hover:border-cyber-cyan hover:shadow-[0_0_10px_rgba(0,240,255,0.3)]'}`}
-                    >
-                        <ActivityIcon /> Dashboard
+                <div className="flex gap-2 font-display text-sm tracking-wider">
+                    <button onClick={() => setActiveTab("dashboard")} className={`px-6 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-cyan/50 hover:text-gray-300'} flex items-center gap-2`}>
+                        <ActivityIcon className="w-4 h-4" /> DASHBOARD
                     </button>
-                    <button 
-                        onClick={() => setActiveTab("learning")}
-                        className={`px-6 py-2 text-sm font-display font-bold tracking-widest transition-all duration-300 flex items-center gap-2 uppercase border-2 ${activeTab === 'learning' ? 'bg-cyber-purple/20 text-cyber-purple border-cyber-purple shadow-[0_0_15px_rgba(189,0,255,0.5)]' : 'bg-transparent text-gray-500 border-gray-700 hover:text-cyber-purple hover:border-cyber-purple hover:shadow-[0_0_10px_rgba(189,0,255,0.3)]'}`}
-                    >
-                        <BrainIcon /> Training Core
+                    <button onClick={() => setActiveTab("training")} className={`px-6 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'training' ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-cyan/50 hover:text-gray-300'} flex items-center gap-2`}>
+                        <BrainIcon className="w-4 h-4" /> TRAINING CORE
                     </button>
                 </div>
             </header>
 
-            {/* MAIN CONTENT */}
-            <main className="flex-1 p-6 flex flex-col gap-8 max-w-[1600px] mx-auto w-full">
-                
-                {activeTab === "dashboard" ? (
-                    <div className="flex flex-col gap-8">
-                        {/* SECTION 1: CHART */}
-                        <section className="w-full opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="text-sm font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 uppercase">
-                                    <TrendingUpIcon /> Market Matrix
-                                </h2>
-                                <div className="px-3 py-1 bg-cyber-green/10 text-cyber-green text-[10px] font-mono font-bold border border-cyber-green shadow-[0_0_10px_rgba(57,255,20,0.3)] flex items-center gap-2 tracking-[0.2em]">
-                                    <span className="w-2 h-2 bg-cyber-green animate-ping-slow"></span> DATALINK ACTIVE
+            {activeTab === "dashboard" ? (
+                <div className="space-y-6">
+                    {/* Top Row: Speedometers */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Speedometer value={gauges.oscillators} label="OSCILLATORS" delay="0s" />
+                        <Speedometer value={gauges.summary} label="SUMMARY" delay="0.1s" />
+                        <Speedometer value={gauges.movingAverages} label="MOVING AVGS" delay="0.2s" />
+                    </div>
+
+                    {/* Middle Row: AI Signal & TradingView */}
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                        
+                        {/* TradingView Chart */}
+                        <div className="xl:col-span-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                            <div className="flex items-center gap-2 mb-3">
+                                <TrendingUpIcon className="text-cyber-cyan" />
+                                <h2 className="font-display text-lg tracking-[0.1em] text-gray-200">MARKET MATRIX</h2>
+                                <div className="ml-auto flex items-center gap-2">
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
+                                    </span>
+                                    <span className="text-[10px] font-mono text-cyber-green border border-cyber-green/30 bg-cyber-green/10 px-2 py-0.5 tracking-wider">DATALINK ACTIVE</span>
                                 </div>
                             </div>
                             <TradingViewWidget />
-                        </section>
+                        </div>
 
-                        {/* SECTION 2: GAUGES & AI PREDICTION */}
-                        <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                            
-                            {/* Technical Gauges */}
-                            <div className="xl:col-span-7 flex flex-col gap-2">
-                                <h2 className="text-sm font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 uppercase opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                                    <CrosshairIcon /> Technical Telemetry
-                                </h2>
-                                <div className="grid grid-cols-3 gap-6 h-full">
-                                    <Speedometer value={gauges.oscillators} label="Oscillators" delay="0.3s" />
-                                    <Speedometer value={gauges.summary} label="Summary" delay="0.4s" />
-                                    <Speedometer value={gauges.movingAverages} label="Moving Avgs" delay="0.5s" />
-                                </div>
+                        {/* AI Prediction Card */}
+                        <div className="xl:col-span-4 flex flex-col gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                            <div className="flex items-center gap-2 mb-1">
+                                <BrainIcon className="text-cyber-cyan animate-pulse-slow" />
+                                <h2 className="font-display text-lg tracking-[0.1em] text-gray-200">NEXT VECTOR PREDICTION</h2>
                             </div>
                             
-                            {/* AI Prediction Card */}
-                            <div className="xl:col-span-5 flex flex-col gap-2 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                                <h2 className="text-sm font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 uppercase">
-                                    <BrainIcon className="animate-pulse"/> Next Vector Prediction
-                                </h2>
+                            <div className={`flex-1 cyber-panel p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${currentPrediction.direction === 'BUY' ? 'glow-card-buy' : currentPrediction.direction === 'SELL' ? 'glow-card-sell' : 'border-gray-500'}`}>
                                 
-                                <div className={`relative flex-1 p-8 flex flex-col border-2 transition-all duration-1000 bg-cyber-dark/80 backdrop-blur-md animate-float ${currentPrediction.direction === 'BUY' ? 'glow-card-buy' : 'glow-card-sell'}`} style={{clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%)'}}>
-                                    {/* Scanline overlay inside card */}
-                                    <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.05)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none"></div>
-
-                                    <div className="relative z-10 flex justify-between items-start mb-6">
-                                        <div>
-                                            <p className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-[0.3em] mb-2">Target Vector</p>
-                                            <div className="flex items-center gap-4">
-                                                <span className={`text-6xl font-display font-black tracking-widest drop-shadow-lg transition-colors duration-1000 ${currentPrediction.direction === 'BUY' ? 'text-cyber-cyan animate-glow-pulse-cyan' : 'text-cyber-pink animate-glow-pulse-pink'}`}>
-                                                    {currentPrediction.direction}
-                                                </span>
-                                                <div className={`flex items-center justify-center w-12 h-12 border-2 shadow-[0_0_15px_currentColor] ${currentPrediction.direction === 'BUY' ? 'bg-cyber-cyan/10 text-cyber-cyan border-cyber-cyan' : 'bg-cyber-pink/10 text-cyber-pink border-cyber-pink'}`}>
-                                                    {currentPrediction.direction === 'BUY' ? (
-                                                        <svg className="animate-bounce" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                                                    ) : (
-                                                        <svg className="animate-bounce" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                                    )}
+                                <div className="flex justify-between items-start z-10 relative">
+                                    <div>
+                                        <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Target Vector</p>
+                                        <div className="flex items-center gap-3">
+                                            <h1 className={`text-6xl font-display font-black tracking-widest uppercase ${currentPrediction.direction === 'BUY' ? 'text-cyber-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]' : currentPrediction.direction === 'SELL' ? 'text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-gray-500'}`}>
+                                                {currentPrediction.direction}
+                                            </h1>
+                                            {currentPrediction.direction === 'BUY' && (
+                                                <div className="p-2 bg-cyber-cyan/10 rounded-md border border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.4)] animate-bounce">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="18 15 12 9 6 15"></polyline></svg>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="text-right">
-                                            <p className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-[0.3em] mb-2">Probability</p>
-                                            <div className="text-5xl font-display font-black text-cyber-yellow drop-shadow-[0_0_10px_rgba(252,238,10,0.5)]">
-                                                {currentPrediction.confidence}%
-                                            </div>
+                                            )}
+                                            {currentPrediction.direction === 'SELL' && (
+                                                <div className="p-2 bg-cyber-pink/10 rounded-md border border-cyber-pink text-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.4)] animate-bounce" style={{animationDirection: 'reverse'}}>
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    
-                                    <div className="relative z-10 bg-black/60 p-4 border border-gray-800 mb-6 flex-1 shadow-inner group transition-colors hover:border-cyber-cyan/50">
-                                        <h4 className="text-[10px] text-cyber-cyan font-mono uppercase tracking-[0.3em] font-bold mb-2 flex items-center gap-2">
-                                            <ActivityIcon className="w-4 h-4" /> Logic Execution
-                                        </h4>
-                                        <p className="text-gray-300 font-mono text-sm leading-relaxed border-l-2 border-cyber-cyan pl-3">
-                                            {currentPrediction.logic}
-                                        </p>
-                                    </div>
-                                    
-                                    <div className="relative z-10 flex items-center justify-between pt-5 border-t border-gray-800">
-                                        <div className="flex items-center gap-2 text-gray-400">
-                                            <ClockIcon className={`w-5 h-5 ${timeLeft <= 10 ? 'text-cyber-pink animate-ping' : ''}`} />
-                                            <span className="text-[10px] font-display font-bold tracking-[0.2em] uppercase">Time To Execution</span>
-                                        </div>
-                                        <div className={`text-4xl font-display font-bold tracking-widest ${timeLeft <= 10 ? 'text-cyber-pink animate-pulse drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-white'}`}>
-                                            {formatTime(timeLeft)}
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Probability</p>
+                                        <div className="text-3xl font-display font-bold text-cyber-yellow drop-shadow-[0_0_8px_rgba(252,238,10,0.6)]">
+                                            {currentPrediction.confidence}%
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </section>
-
-                        {/* SECTION 3: TABLES & TERMINAL */}
-                        <section className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                            <div className="grid grid-cols-2 gap-6">
-                                <IndicatorTable title="OSC DATA" data={oscillatorsData} delay="0.6s" />
-                                <IndicatorTable title="MA DATA" data={maData} delay="0.7s" />
-                            </div>
-                            
-                            <div className="flex flex-col gap-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-                                <div className="cyber-panel p-5 h-full flex flex-col relative overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.15)]">
-                                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-cyber-cyan/30 relative z-10">
-                                        <h3 className="font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 text-sm uppercase">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" className="text-cyber-cyan animate-pulse"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                                            System Terminal
-                                        </h3>
-                                        <span className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-black bg-cyber-cyan px-2 py-1 shadow-[0_0_10px_rgba(0,240,255,0.5)]">
-                                            <span className="w-1.5 h-1.5 bg-black animate-ping"></span>
-                                            LIVE LOG
-                                        </span>
+                                
+                                <div className="mt-8 mb-6 p-4 bg-cyber-darker border-l-2 border-cyber-cyan relative z-10 font-mono text-sm text-gray-300 shadow-inner">
+                                    <div className="flex items-center gap-2 mb-2 text-cyber-cyan">
+                                        <ActivityIcon className="w-4 h-4" />
+                                        <span className="text-[10px] tracking-[0.2em] font-bold uppercase">Logic Execution</span>
                                     </div>
-                                    <div 
-                                        ref={terminalRef}
-                                        className="terminal-scroll flex-1 bg-black/80 p-4 font-mono text-[12px] leading-6 text-gray-400 overflow-y-auto max-h-[260px] shadow-inner border border-gray-900 relative z-10"
-                                    >
-                                        {terminalLogs.map((log) => (
-                                            <div key={log.id} className="mb-2 animate-slide-in-right opacity-0" style={{ animationFillMode: 'forwards' }}>
-                                                <span className="text-cyber-yellow font-bold mr-2">root@ddy:~#</span>
-                                                <span className="text-cyber-green">{log.msg}</span>
-                                            </div>
-                                        ))}
+                                    <p className="leading-relaxed typewriter-text">{currentPrediction.logic}</p>
+                                </div>
+                                
+                                <div className="pt-4 border-t border-gray-800 flex justify-between items-center relative z-10 mt-auto">
+                                    <div className="flex items-center gap-2 text-gray-400 text-xs font-display tracking-widest">
+                                        <ClockIcon className="w-4 h-4" />
+                                        TIME TO EXECUTION
+                                    </div>
+                                    <div className="font-mono text-2xl font-bold tracking-widest text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
+                                        {formatTime(timeLeft)}
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </div>
                     </div>
-                ) : (
-                    /* LEARNING TAB */
-                    <div className="flex flex-col gap-8 h-full">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {/* Stats */}
-                            <div className="cyber-panel p-8 flex flex-col justify-center items-center opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                                <h3 className="text-cyber-cyan font-mono font-bold uppercase tracking-[0.3em] text-[10px] mb-4">Network Win Rate</h3>
-                                <div className="text-7xl font-display font-black text-cyber-cyan drop-shadow-[0_0_20px_rgba(0,240,255,0.6)] animate-pulse">
-                                    {winRate}%
-                                </div>
-                                <div className="mt-6 px-4 py-1 bg-black border-2 border-gray-800 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">
-                                    Sample Size: <span className="text-cyber-cyan">{totalSignals}</span> epochs
-                                </div>
-                            </div>
-                            
-                            <div className="cyber-panel p-8 flex flex-col justify-center items-center opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                                <h3 className="text-cyber-cyan font-mono font-bold uppercase tracking-[0.3em] text-[10px] mb-6">True / False Signals</h3>
-                                <div className="flex items-center gap-6 text-5xl font-display font-black">
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-cyber-green drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]">{wins}</span>
-                                        <span className="text-[10px] font-mono text-cyber-green/70 uppercase mt-2 tracking-widest">Valid</span>
-                                    </div>
-                                    <span className="text-gray-700 font-light text-6xl">|</span>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-cyber-pink drop-shadow-[0_0_15px_rgba(255,0,60,0.5)]">{totalSignals - wins}</span>
-                                        <span className="text-[10px] font-mono text-cyber-pink/70 uppercase mt-2 tracking-widest">Invalid</span>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="cyber-panel p-6 flex flex-col justify-center opacity-0 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                                <h3 className="text-cyber-cyan font-mono font-bold uppercase tracking-[0.3em] text-[10px] mb-6 flex items-center gap-2">
-                                    <ActivityIcon className="w-4 h-4" /> Neural Weights Matrix
-                                </h3>
-                                <div className="space-y-5">
-                                    <div className="group">
-                                        <div className="flex justify-between text-[10px] font-mono font-bold mb-2 uppercase tracking-widest">
-                                            <span className="text-gray-400 group-hover:text-cyber-cyan transition-colors">Oscillators</span>
-                                            <span className="text-cyber-cyan">40%</span>
-                                        </div>
-                                        <div className="w-full bg-black h-3 border border-gray-800 overflow-hidden">
-                                            <div className="bg-cyber-cyan h-full relative" style={{ width: '40%' }}>
-                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 animate-glitch"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="group">
-                                        <div className="flex justify-between text-[10px] font-mono font-bold mb-2 uppercase tracking-widest">
-                                            <span className="text-gray-400 group-hover:text-cyber-purple transition-colors">Momentum & Volume</span>
-                                            <span className="text-cyber-purple">35%</span>
-                                        </div>
-                                        <div className="w-full bg-black h-3 border border-gray-800 overflow-hidden">
-                                            <div className="bg-cyber-purple h-full relative" style={{ width: '35%' }}>
-                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 animate-glitch" style={{animationDelay: '0.2s'}}></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="group">
-                                        <div className="flex justify-between text-[10px] font-mono font-bold mb-2 uppercase tracking-widest">
-                                            <span className="text-gray-400 group-hover:text-cyber-yellow transition-colors">EMA Core</span>
-                                            <span className="text-cyber-yellow">25%</span>
-                                        </div>
-                                        <div className="w-full bg-black h-3 border border-gray-800 overflow-hidden">
-                                            <div className="bg-cyber-yellow h-full relative" style={{ width: '25%' }}>
-                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 animate-glitch" style={{animationDelay: '0.4s'}}></div>
-                                            </div>
-                                        </div>
-                                    </div>
+                    {/* Bottom Row: Tables */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
+                        <IndicatorTable title="OSC DATA" data={oscillatorsData} delay="0.5s" />
+                        <IndicatorTable title="MA DATA" data={maData} delay="0.6s" />
+                    </div>
+                </div>
+            ) : (
+                /* TRAINING CORE TAB */
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
+                    
+                    {/* Left Col: Terminal */}
+                    <div className="lg:col-span-2 cyber-panel p-0 flex flex-col h-[600px] border border-cyber-purple/30">
+                        <div className="px-4 py-3 bg-cyber-darker border-b border-cyber-purple/30 flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-cyber-pink"></div>
+                                <div className="w-3 h-3 rounded-full bg-cyber-yellow"></div>
+                                <div className="w-3 h-3 rounded-full bg-cyber-green"></div>
+                            </div>
+                            <span className="ml-4 font-mono text-xs text-cyber-purple tracking-[0.2em]">root@ddy:~# ./training_module.sh</span>
+                        </div>
+                        <div 
+                            ref={terminalRef}
+                            className="flex-1 p-4 font-mono text-[13px] text-gray-300 leading-relaxed overflow-y-auto terminal-scroll bg-[#050505]"
+                        >
+                            {terminalLogs.map(log => (
+                                <div key={log.id} className="mb-1 opacity-0 animate-fade-in">
+                                    <span className="text-gray-500 mr-2">></span>
+                                    <span dangerouslySetInnerHTML={{__html: log.msg.replace(/\[(.*?)\]/g, '<span class="text-cyber-cyan">[$1]</span>')}}></span>
+                                </div>
+                            ))}
+                            <div className="animate-pulse text-cyber-cyan mt-2">_</div>
+                        </div>
+                    </div>
+
+                    {/* Right Col: Stats */}
+                    <div className="flex flex-col gap-6">
+                        <div className="cyber-panel p-6 shadow-[0_0_15px_rgba(189,0,255,0.15)] border-cyber-purple/30">
+                            <h3 className="font-display font-bold text-gray-200 text-sm tracking-wider mb-6 border-b border-cyber-purple/30 pb-2">PERFORMANCE MATRIX</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-cyber-darker border border-gray-800 text-center">
+                                    <div className="text-[10px] font-mono text-gray-500 mb-1 tracking-widest">TOTAL</div>
+                                    <div className="text-2xl font-display font-black text-white">{totalSignals}</div>
+                                </div>
+                                <div className="p-4 bg-cyber-darker border border-gray-800 text-center">
+                                    <div className="text-[10px] font-mono text-gray-500 mb-1 tracking-widest">WIN RATE</div>
+                                    <div className="text-2xl font-display font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{winRate}%</div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Learning Status Banner */}
-                        <div className="bg-cyber-purple/10 border-2 border-cyber-purple p-6 flex items-center gap-6 shadow-[0_0_20px_rgba(189,0,255,0.2)] opacity-0 animate-fade-in-up" style={{ animationDelay: '0.4s', clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%)' }}>
-                            <div className="bg-cyber-purple/20 p-4 text-cyber-purple border border-cyber-purple/50">
-                                <BrainIcon className="animate-spin-slow w-8 h-8" />
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="text-white font-display font-bold tracking-[0.2em] uppercase mb-2 flex items-center gap-3">
-                                    Reinforcement Protocol <span className="text-cyber-purple">Active</span>
-                                    <span className="flex h-3 w-3 relative">
-                                      <span className="animate-ping absolute inline-flex h-full w-full bg-cyber-purple opacity-75"></span>
-                                      <span className="relative inline-flex h-3 w-3 bg-cyber-purple"></span>
-                                    </span>
-                                </h4>
-                                <p className="text-sm text-gray-400 font-mono leading-relaxed max-w-4xl border-l-2 border-cyber-purple pl-4">
-                                    System analyzing t-1 False vectors. Recalculating loss function gradient and applying momentum decay to RSI divergence weights. 5m topology optimized for future execution.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* History Table */}
-                        <div className="cyber-panel flex-1 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-                            <div className="px-6 py-4 border-b border-cyber-cyan/30 bg-black/50 flex justify-between items-center">
-                                <h3 className="font-display font-bold text-cyber-cyan flex items-center gap-2 text-sm tracking-widest uppercase">
-                                    <ClockIcon /> Execution History
-                                </h3>
-                                <div className="text-[10px] font-mono text-cyber-cyan bg-cyber-cyan/10 px-3 py-1 border border-cyber-cyan/30 tracking-[0.3em] uppercase">Sync_Active</div>
-                            </div>
-                            <div className="overflow-x-auto p-2">
-                                <table className="w-full text-sm text-left text-gray-300">
-                                    <thead className="text-[10px] text-gray-500 font-mono tracking-[0.3em] uppercase bg-transparent border-b border-gray-800">
-                                        <tr>
-                                            <th className="px-6 py-4 font-medium">TIMESTAMP</th>
-                                            <th className="px-6 py-4 font-medium">ASSET</th>
-                                            <th className="px-6 py-4 font-medium text-center">VECTOR</th>
-                                            <th className="px-6 py-4 font-medium text-center">PROBABILITY</th>
-                                            <th className="px-6 py-4 font-medium">OUTCOME</th>
-                                        </tr>
-                                    </thead>
+                        <div className="cyber-panel flex-1 flex flex-col overflow-hidden border-cyber-purple/30">
+                            <h3 className="font-display font-bold text-gray-200 text-sm tracking-wider px-5 py-4 border-b border-cyber-purple/30 bg-cyber-darker">SIGNAL HISTORY</h3>
+                            <div className="flex-1 overflow-y-auto terminal-scroll p-2">
+                                <table className="w-full text-sm text-left">
                                     <tbody className="divide-y divide-gray-800/50">
-                                        {history.map((row, idx) => (
-                                            <tr key={row.id} className="hover:bg-cyber-cyan/10 transition-all duration-300 group" style={{ animation: `fadeInUp 0.3s ease-out forwards ${idx * 0.05}s`, opacity: 0 }}>
-                                                <td className="px-6 py-4 text-gray-500 font-mono group-hover:text-cyber-cyan transition-colors">{row.time}</td>
-                                                <td className="px-6 py-4 font-display font-bold text-white">{row.pair}</td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`inline-block px-4 py-1 text-xs font-display font-black tracking-[0.2em] border-2 uppercase ${row.dir === 'BUY' ? 'text-cyber-cyan border-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'text-cyber-pink border-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.3)]'}`}>
-                                                        {row.dir}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 font-display font-bold text-center text-cyber-yellow group-hover:text-white transition-colors">{row.conf}%</td>
-                                                <td className="px-6 py-4">
-                                                    <div className={`inline-flex items-center gap-2 font-display font-bold text-xs tracking-widest uppercase ${row.result === 'Win' ? 'text-cyber-green' : 'text-cyber-pink'}`}>
-                                                        {row.result === 'Win' ? (
-                                                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><polyline points="20 6 9 17 4 12"></polyline></svg> VALID</>
-                                                        ) : (
-                                                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> INVALID</>
-                                                        )}
-                                                    </div>
+                                        {history.map((h, i) => (
+                                            <tr key={i} className="font-mono text-xs hover:bg-cyber-purple/10">
+                                                <td className="px-4 py-2 text-gray-500">{h.time}</td>
+                                                <td className={`px-4 py-2 font-bold ${h.dir === 'BUY' ? 'text-cyber-cyan' : 'text-cyber-pink'}`}>{h.dir}</td>
+                                                <td className="px-4 py-2 text-cyber-yellow">{h.conf}%</td>
+                                                <td className="px-4 py-2 text-right">
+                                                    {h.result === "Win" ? 
+                                                        <span className="text-cyber-green border border-cyber-green/50 px-2 py-0.5">VALID</span> : 
+                                                        <span className="text-cyber-pink border border-cyber-pink/50 px-2 py-0.5">INVALID</span>
+                                                    }
                                                 </td>
                                             </tr>
-                                        )).reverse()}
+                                        ))}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
-
                     </div>
-                )}
-
-            </main>
+                </div>
+            )}
         </div>
     );
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
-
     </script>
 </body>
 </html>
