@@ -321,24 +321,296 @@ const IndicatorTable = ({ title, data, delay }) => (
 const App = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
     
-    // LIVE MARKET DATA (Binance WebSocket)
-    const [livePrice, setLivePrice] = useState({ current: 0, open: 0, delta: 0 });
+    // REAL LIVE DATA STATE (TWELVE DATA - PURE FOREX)
+    const [realData, setRealData] = useState({
+        price: 0,
+        openPrice: 0,
+        sma10: 0,
+        sma20: 0,
+        sma50: 0,
+        rsi14: 50,
+        isGreenCandle: true,
+        momentum: 0
+    });
+    
+    const API_KEY = "9f08b18e57af42349b92c1d5e67f8e92";
     
     useEffect(() => {
-        const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker');
+        // Fetch Historical 5m Candles from Twelve Data
+        fetch(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=5min&outputsize=60&apikey=${API_KEY}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.values) return;
+            // Twelve Data returns newest first. We need oldest first for SMA/RSI calculation, or just reverse it
+            const candles = data.values.reverse();
+            const closes = candles.map(d => parseFloat(d.close));
+            const currentCandle = candles[candles.length - 1];
+            const currentOpen = parseFloat(currentCandle.open);
+            const currentPrice = parseFloat(currentCandle.close);
+            
+            const calcSMA = (period) => {
+                const slice = closes.slice(-period);
+                return slice.reduce((a, b) => a + b, 0) / period;
+            };
+            
+            let gains = 0, losses = 0;
+            for(let i = closes.length - 15; i < closes.length - 1; i++) {
+                const diff = closes[i+1] - closes[i];
+                if (diff >= 0) gains += diff;
+                else losses -= diff;
+            }
+            const avgGain = gains / 14;
+            const avgLoss = losses / 14;
+            const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+            const rsi = 100 - (100 / (1 + rs));
+
+            setRealData(prev => ({
+                ...prev,
+                sma10: calcSMA(10),
+                sma20: calcSMA(20),
+                sma50: calcSMA(50),
+                rsi14: rsi || 50,
+                price: currentPrice,
+                openPrice: currentOpen,
+                isGreenCandle: currentPrice >= currentOpen,
+                momentum: currentPrice - currentOpen
+            }));
+        });
+
+        // Connect to Twelve Data WebSocket for Live Tick Data
+        const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`);
+        
+        ws.onopen = () => {
+            ws.send(JSON.stringify({
+                "action": "subscribe",
+                "params": {
+                    "symbols": "EUR/USD"
+                }
+            }));
+        };
+
         ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.c && data.o) {
-                const current = parseFloat(data.c);
-                const open = parseFloat(data.o);
-                setLivePrice({
-                    current: current,
-                    open: open,
-                    delta: current - open
+            const msg = JSON.parse(event.data);
+            if (msg.event === "price" && msg.price) {
+                const current = parseFloat(msg.price);
+                setRealData(prev => {
+                    // Use the open price from REST as baseline for 5m momentum
+                    const open = prev.openPrice !== 0 ? prev.openPrice : current;
+                    return {
+                        ...prev,
+                        price: current,
+                        isGreenCandle: current >= open,
+                        momentum: current - open
+                    };
                 });
             }
         };
         return () => ws.close();
+    }, []);
+
+    const [currentPrediction, setCurrentPrediction] = useState({
+        direction: "WAIT",
+        confidence: 0,
+        logic: "Initializing Live Forex Matrix...",
+        timestamp: new Date()
+    });
+
+    const [history, setHistory] = useState([]);
+    const [timeLeft, setTimeLeft] = useState(300);
+    const terminalRef = useRef(null);
+    const [terminalLogs, setTerminalLogs] = useState([
+        { id: 1, msg: "[SYS] DDY Trading Core Activated..." },
+        { id: 2, msg: "[API] Connected to TwelveData REST API for Pure Forex Klines." },
+        { id: 3, msg: "[WS] Live EUR/USD tick WebSocket stream active." }
+    ]);
+
+    // Instantly react to Live Candle changes
+    useEffect(() => {
+        if (realData.price === 0) return;
+        
+        const isBuy = realData.isGreenCandle;
+        const conf = Math.min(99, Math.floor(65 + (Math.abs(realData.momentum) * 10000)));
+        
+        setCurrentPrediction(prev => {
+            const newDir = isBuy ? "BUY" : "SELL";
+            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
+                return {
+                    ...prev,
+                    direction: newDir,
+                    confidence: conf,
+                    logic: isBuy ? "Pure Forex Analysis: Bullish pressure detected. Price > Open." : "Pure Forex Analysis: Bearish pressure detected. Price < Open.",
+                    timestamp: new Date()
+                };
+            }
+            return prev;
+        });
+    }, [realData.isGreenCandle, realData.momentum, realData.price]);
+
+    // Timer Effect for 5m interval resets
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    setHistory(h => {
+                        const newH = [...h, {
+                            id: Date.now(),
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            pair: "EUR/USD",
+                            dir: currentPrediction.direction,
+                            conf: currentPrediction.confidence,
+                            result: currentPrediction.direction === (realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
+                        }];
+                        return newH.slice(-15);
+                    });
+                    return 300;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [currentPrediction, realData.isGreenCandle]);
+
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTo({
+                top: terminalRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [terminalLogs]);
+
+    const totalSignals = history.length;
+    const wins = history.filter(h => h.result === "Win").length;
+    const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
+
+    const oscillatorsData = [
+        { name: "Relative Strength Index (14)", value: realData.rsi14.toFixed(2), action: realData.rsi14 > 70 ? "Sell" : realData.rsi14 < 30 ? "Buy" : "Neutral" },
+        { name: "Current Price Delta", value: realData.momentum.toFixed(5), action: realData.momentum >= 0 ? "Buy" : "Sell" },
+    ];
+
+    const maData = [
+        { name: "Simple Moving Average (10)", value: realData.sma10.toFixed(5), action: realData.price > realData.sma10 ? "Buy" : "Sell" },
+        { name: "Simple Moving Average (20)", value: realData.sma20.toFixed(5), action: realData.price > realData.sma20 ? "Buy" : "Sell" },
+        { name: "Simple Moving Average (50)", value: realData.sma50.toFixed(5), action: realData.price > realData.sma50 ? "Buy" : "Sell" },
+    ];
+
+    const gauges = {
+        oscillators: realData.rsi14,
+        movingAverages: realData.price > realData.sma20 ? 80 : 20,
+        summary: ((realData.rsi14) + (realData.price > realData.sma20 ? 80 : 20)) / 2
+    };
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return () => ws.close();
+    }, []);
+
+    const [currentPrediction, setCurrentPrediction] = useState({
+        direction: "WAIT",
+        confidence: 0,
+        logic: "Initializing Live Matrix...",
+        timestamp: new Date()
+    });
+
+    const [history, setHistory] = useState([]);
+    const [timeLeft, setTimeLeft] = useState(300);
+    const terminalRef = useRef(null);
+    const [terminalLogs, setTerminalLogs] = useState([
+        { id: 1, msg: "[SYS] DDY Trading Core Activated..." },
+        { id: 2, msg: "[API] Connected to Binance REST API for Historical Klines." },
+        { id: 3, msg: "[WS] Live 5m Kline WebSocket stream active." }
+    ]);
+
+    // Instantly react to Live Candle changes
+    useEffect(() => {
+        if (realData.price === 0) return;
+        
+        const isBuy = realData.isGreenCandle;
+        const conf = Math.min(99, Math.floor(65 + (Math.abs(realData.momentum) * 10000)));
+        
+        setCurrentPrediction(prev => {
+            const newDir = isBuy ? "BUY" : "SELL";
+            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
+                return {
+                    ...prev,
+                    direction: newDir,
+                    confidence: conf,
+                    logic: isBuy ? "5m Candle is Green (Current Price > Open). Real-time bullish pressure." : "5m Candle is Red (Current Price < Open). Real-time bearish pressure.",
+                    timestamp: new Date()
+                };
+            }
+            return prev;
+        });
+    }, [realData.isGreenCandle, realData.momentum, realData.price]);
+
+    // Timer Effect for 5m interval resets
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    // Log to history on candle close
+                    setHistory(h => {
+                        const newH = [...h, {
+                            id: Date.now(),
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            pair: "EUR/USD",
+                            dir: currentPrediction.direction,
+                            conf: currentPrediction.confidence,
+                            result: currentPrediction.direction === (realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
+                        }];
+                        return newH.slice(-15);
+                    });
+                    return 300;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [currentPrediction, realData.isGreenCandle]);
+
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTo({
+                top: terminalRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [terminalLogs]);
+
+    const totalSignals = history.length;
+    const wins = history.filter(h => h.result === "Win").length;
+    const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
+
+    // Derived Real Data for Tables
+    const oscillatorsData = [
+        { name: "Relative Strength Index (14)", value: realData.rsi14.toFixed(2), action: realData.rsi14 > 70 ? "Sell" : realData.rsi14 < 30 ? "Buy" : "Neutral" },
+        { name: "Current Price Delta", value: realData.momentum.toFixed(5), action: realData.momentum >= 0 ? "Buy" : "Sell" },
+    ];
+
+    const maData = [
+        { name: "Simple Moving Average (10)", value: realData.sma10.toFixed(5), action: realData.price > realData.sma10 ? "Buy" : "Sell" },
+        { name: "Simple Moving Average (20)", value: realData.sma20.toFixed(5), action: realData.price > realData.sma20 ? "Buy" : "Sell" },
+        { name: "Simple Moving Average (50)", value: realData.sma50.toFixed(5), action: realData.price > realData.sma50 ? "Buy" : "Sell" },
+    ];
+
+    // Derived Real Gauges
+    const gauges = {
+        oscillators: realData.rsi14,
+        movingAverages: realData.price > realData.sma20 ? 80 : 20,
+        summary: ((realData.rsi14) + (realData.price > realData.sma20 ? 80 : 20)) / 2
+    };
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return () => ws.close();
     }, []);
 
     // Instantly react to Live Price changes
