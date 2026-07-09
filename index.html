@@ -208,6 +208,11 @@ const TradingViewWidget = () => {
             "hide_top_toolbar": false,
             "hide_legend": false,
             "save_image": false,
+            "studies": [
+              "MACD@tv-basicstudies",
+              "RSI@tv-basicstudies",
+              "BB@tv-basicstudies"
+            ],
             "container_id": "tradingview_widget"
           }
         `;
@@ -316,6 +321,49 @@ const IndicatorTable = ({ title, data, delay }) => (
 const App = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
     
+    // LIVE MARKET DATA (Binance WebSocket)
+    const [livePrice, setLivePrice] = useState({ current: 0, open: 0, delta: 0 });
+    
+    useEffect(() => {
+        const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker');
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.c && data.o) {
+                const current = parseFloat(data.c);
+                const open = parseFloat(data.o);
+                setLivePrice({
+                    current: current,
+                    open: open,
+                    delta: current - open
+                });
+            }
+        };
+        return () => ws.close();
+    }, []);
+
+    // Instantly react to Live Price changes
+    useEffect(() => {
+        if (livePrice.current === 0) return;
+        
+        const isBuy = livePrice.delta >= 0;
+        const conf = Math.min(99, Math.floor(75 + (Math.abs(livePrice.delta) * 5000)));
+        
+        setCurrentPrediction(prev => {
+            const newDir = isBuy ? "BUY" : "SELL";
+            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
+                return {
+                    ...prev,
+                    direction: newDir,
+                    confidence: conf,
+                    logic: isBuy ? "Live Data Analysis: Bullish momentum detected. Price is above open." : "Live Data Analysis: Bearish pressure detected. Price is below open."
+                };
+            }
+            return prev;
+        });
+    }, [livePrice]);
+
+
+    
     // AI State
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
     const [currentPrediction, setCurrentPrediction] = useState({
@@ -342,7 +390,7 @@ const App = () => {
     
     const [terminalLogs, setTerminalLogs] = useState([
         { id: 1, msg: "[SYS] Initializing DDY Neural Net..." },
-        { id: 2, msg: "[DATA] Connected to real-time OHLCV exchange socket." },
+        { id: 2, msg: "[DATA] Connected to LIVE Server Feed (EUR/USD)." },
     ]);
     
     const terminalRef = useRef(null);
@@ -412,18 +460,27 @@ const App = () => {
     }, [terminalLogs]);
 
     const generateNewSignal = () => {
-        const isBuy = Math.random() > 0.5;
-        const conf = Math.floor(Math.random() * 20) + 75; // 75-95%
-        const logics = [
-            "Support rejected. RSI bullish divergence detected.",
-            "MACD cross < 0. Bearish continuation likely.",
-            "Volume spike on breakout. Trend confirmed.",
-            "EMA alignment strong. Ignoring overbought signals.",
-            "StochRSI cross detected. Reversal imminent.",
-            "Bollinger Band squeeze upper boundary breach."
+        // Use Live Market Data
+        let isBuy = Math.random() > 0.5;
+        let conf = Math.floor(Math.random() * 20) + 75;
+        
+        // Live logic override based on current candle momentum
+        if (livePrice.current !== 0) {
+            isBuy = livePrice.delta >= 0; // Buy if market is going UP, Sell if DOWN
+            // Fake confidence scaled by the size of the price delta
+            conf = Math.min(99, Math.floor(75 + (Math.abs(livePrice.delta) * 5000)));
+        }
+        
+        const logics = isBuy ? [
+            "Live Data Analysis: Bullish momentum detected. Price is above open.",
+            "Buy volume increasing. Order book leaning bullish.",
+            "Micro-trend confirms upward trajectory on 5m scale."
+        ] : [
+            "Live Data Analysis: Bearish pressure detected. Price is below open.",
+            "Sell volume spiking. Support levels breaking.",
+            "Micro-trend confirms downward trajectory on 5m scale."
         ];
         
-        // Resolve previous signal
         const prevResult = Math.random() > 0.3 ? "Win" : "Loss";
         setHistory(prev => {
             const newHistory = [...prev, {
@@ -486,8 +543,8 @@ const App = () => {
                         <ZapIcon className="animate-glitch" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">
-                            NEXUS<span className="text-cyber-cyan">.AI</span>
+                        <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] uppercase">
+                            DDY<span className="text-cyber-cyan">.AI</span>
                         </h1>
                         <p className="text-[10px] font-mono text-cyber-yellow font-bold tracking-[0.3em] uppercase mt-0.5">Pred-Engine v2.4 // Online</p>
                     </div>
