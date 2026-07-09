@@ -694,36 +694,36 @@ const App = () => {
     ]);
 
     useEffect(() => {
-        if (realData.price === 0) return;
-        const absM = Math.abs(realData.momentum);
-        const isBuy = realData.momentum >= 0;
-        let newDir = "NEUTRAL";
-        let conf = 50;
-        let logicMsg = "Analyzing market consolidation...";
-        
-        if (absM > 0.00015) {
-            newDir = isBuy ? "STRONG BUY" : "STRONG SELL";
-            conf = Math.min(99, Math.floor(80 + (absM * 10000)));
-            logicMsg = isBuy ? "High Bullish Volume Detected. Price action breaking upper standard deviation." : "High Bearish Volume Detected. Price action breaking lower standard deviation.";
-        } else if (absM > 0.00005) {
-            newDir = isBuy ? "BUY" : "SELL";
-            conf = Math.min(79, Math.floor(60 + (absM * 10000)));
-            logicMsg = isBuy ? "Bullish momentum accumulating. Standard setup." : "Bearish momentum accumulating. Standard setup.";
-        }
-
-        setCurrentPrediction(prev => {
-            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
-                return {
-                    ...prev,
-                    direction: newDir,
-                    confidence: conf,
-                    logic: logicMsg,
-                    timestamp: new Date()
-                };
+        const fetchAIPrediction = async () => {
+            try {
+                const response = await fetch('https://41c5ed08-79e0-41ee-8c64-049a2015831e-00-360yhe78pctoc.pike.replit.dev/api/predict?pair=EUR/USD');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!data.error) {
+                        setCurrentPrediction(prev => {
+                            if (prev.direction !== data.direction || Math.abs(prev.confidence - data.confidence) > 2) {
+                                return {
+                                    ...prev,
+                                    direction: data.direction,
+                                    confidence: data.confidence,
+                                    logic: data.logic,
+                                    timestamp: new Date()
+                                };
+                            }
+                            return prev;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.log("AI Backend Error:", err);
             }
-            return prev;
-        });
-    }, [realData.isGreenCandle, realData.momentum, realData.price]);
+        };
+
+        // Fetch immediately and then every 5 seconds
+        fetchAIPrediction();
+        const interval = setInterval(fetchAIPrediction, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     const lastSavedWindow = useRef(-1);
 
