@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDY Trading Assistant</title>
+    
+    <!-- Cyberpunk Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rajdhani', 'sans-serif'],
+                        display: ['Orbitron', 'sans-serif'],
+                        mono: ['Courier New', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            dark: '#030014',
+                            darker: '#010008',
+                            panel: '#0a0a1f',
+                            cyan: '#00f0ff',
+                            pink: '#ff003c',
+                            purple: '#bd00ff',
+                            yellow: '#fcee0a',
+                            green: '#39ff14'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-in-right': 'slideInRight 0.5s ease-out forwards',
+                        'slide-in-left': 'slideInLeft 0.5s ease-out forwards',
+                        'float': 'float 4s ease-in-out infinite',
+                        'glow-pulse-cyan': 'glowPulseCyan 2s ease-in-out infinite alternate',
+                        'glow-pulse-pink': 'glowPulsePink 2s ease-in-out infinite alternate',
+                        'spin-slow': 'spin 4s linear infinite',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'glitch': 'glitch 1s linear infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { opacity: '0', transform: 'translateX(-30px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        slideInLeft: {
+                            '0%': { opacity: '0', transform: 'translateX(30px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        },
+                        glowPulseCyan: {
+                            '0%': { filter: 'drop-shadow(0 0 5px rgba(0, 240, 255, 0.5))' },
+                            '100%': { filter: 'drop-shadow(0 0 20px rgba(0, 240, 255, 1))' },
+                        },
+                        glowPulsePink: {
+                            '0%': { filter: 'drop-shadow(0 0 5px rgba(255, 0, 60, 0.5))' },
+                            '100%': { filter: 'drop-shadow(0 0 20px rgba(255, 0, 60, 1))' },
+                        },
+                        glitch: {
+                            '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
+                            '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
+                            '62%': { transform: 'translate(0,0) skew(5deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            background-color: #030014;
+            color: #e2e8f0;
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            /* Cyber grid background */
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        
+        h1, h2, h3, h4, .font-display {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.05em;
+        }
+        
+        .terminal-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: rgba(0, 240, 255, 0.05);
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background-color: #00f0ff;
+        }
+        
+        /* Cyberpunk Glowing card effect */
+        .glow-card-buy {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2);
+            border: 2px solid rgba(0, 240, 255, 0.6);
+        }
+        .glow-card-sell {
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.3), inset 0 0 10px rgba(255, 0, 60, 0.2);
+            border: 2px solid rgba(255, 0, 60, 0.6);
+        }
+        
+        /* Cyberpunk styling for panels */
+        .cyber-panel {
+            background-color: rgba(10, 10, 31, 0.85);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+        }
+        
+        /* Scanline effect */
+        .scanlines {
+            position: relative;
+        }
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="dark antialiased min-h-screen scanlines">
+    <div id="root"></div>
+
+    <!-- Application Script -->
+    <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// -------------------------------------------------------------
+// ICONS (Inline SVGs)
+// -------------------------------------------------------------
+const ActivityIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+const ClockIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
+const BrainIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.002 6.5A3 3 0 0 1 5.603 5.125"></path><path d="M11.5 22a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1"></path><path d="M12.5 22a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1"></path></svg>;
+const TrendingUpIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>;
+const ZapIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>;
+const CrosshairIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>;
+
+// -------------------------------------------------------------
+// COMPONENTS
+// -------------------------------------------------------------
+
+const TradingViewWidget = () => {
+    const container = useRef();
+    
+    useEffect(() => {
+        container.current.innerHTML = '';
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.innerHTML = `
+          {
+            "width": "100%",
+            "height": "400",
+            "symbol": "FX:EURUSD",
+            "interval": "5",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "enable_publishing": false,
+            "backgroundColor": "rgba(3, 0, 20, 1)",
+            "gridColor": "rgba(0, 240, 255, 0.1)",
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "container_id": "tradingview_widget"
+          }
+        `;
+        container.current.appendChild(script);
+    }, []);
+    return (
+        <div className="w-full h-[400px] cyber-panel overflow-hidden transition-all duration-500 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+            <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}>
+                <div className="tradingview-widget-container__widget" style={{ height: "100%", width: "100%" }}></div>
+            </div>
+        </div>
+    );
+};
+
+const Speedometer = ({ value, label, delay }) => {
+    const clampedValue = Math.max(0, Math.min(100, value));
+    const angle = (clampedValue / 100) * 180 - 90;
+    
+    let statusText = "NEUTRAL";
+    let colorClass = "text-gray-500";
+    let activeStroke = "#4b5563"; // neutral
+    
+    if(clampedValue <= 20) { statusText = "STRONG SELL"; colorClass = "text-cyber-pink animate-pulse"; activeStroke = "#ff003c"; }
+    else if(clampedValue <= 40) { statusText = "SELL"; colorClass = "text-red-500"; activeStroke = "#ef4444"; }
+    else if(clampedValue >= 80) { statusText = "STRONG BUY"; colorClass = "text-cyber-cyan animate-pulse"; activeStroke = "#00f0ff"; }
+    else if(clampedValue >= 60) { statusText = "BUY"; colorClass = "text-blue-500"; activeStroke = "#3b82f6"; }
+
+    return (
+        <div 
+            className="flex flex-col items-center justify-center p-5 cyber-panel w-full transform transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(0,240,255,0.3)] opacity-0 animate-fade-in-up"
+            style={{ animationDelay: delay }}
+        >
+            <h3 className="text-xs font-display font-bold text-cyber-yellow mb-3 tracking-[0.2em]">{label}</h3>
+            <svg width="140" height="80" viewBox="0 0 120 70" className="relative z-10 drop-shadow-[0_0_10px_rgba(0,240,255,0.2)]">
+                {/* Background Arc */}
+                <path d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke="#111" strokeWidth="8" strokeLinecap="square" />
+                
+                {/* Colored Arcs */}
+                <path d="M 10 60 A 50 50 0 0 1 24.6 24.6" fill="none" stroke="#ff003c" strokeWidth="8" strokeLinecap="square" className="transition-all duration-500" />
+                <path d="M 24.6 24.6 A 50 50 0 0 1 50 11.2" fill="none" stroke="#990033" strokeWidth="8" className="transition-all duration-500" />
+                <path d="M 50 11.2 A 50 50 0 0 1 70 11.2" fill="none" stroke="#333" strokeWidth="8" className="transition-all duration-500" />
+                <path d="M 70 11.2 A 50 50 0 0 1 95.4 24.6" fill="none" stroke="#0088aa" strokeWidth="8" className="transition-all duration-500" />
+                <path d="M 95.4 24.6 A 50 50 0 0 1 110 60" fill="none" stroke="#00f0ff" strokeWidth="8" strokeLinecap="square" className="transition-all duration-500" />
+                
+                {/* Active Indicator Arc Overlay (Glow) */}
+                <path d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke={activeStroke} strokeWidth="8" strokeLinecap="square" className="opacity-80 mix-blend-screen" style={{clipPath: `inset(0 ${100 - clampedValue}% 0 0)`}}/>
+
+                {/* Cyber Needle */}
+                <g transform={`translate(60, 60) rotate(${angle})`} style={{ transition: 'transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+                    <polygon points="-2,-45 2,-45 4,0 -4,0" fill="#fcee0a" className="drop-shadow-[0_0_5px_rgba(252,238,10,0.8)]" />
+                    <rect x="-4" y="-4" width="8" height="8" fill="#fcee0a" />
+                    <rect x="-2" y="-2" width="4" height="4" fill="#000" />
+                </g>
+            </svg>
+            <div className={`mt-3 font-display font-bold text-lg transition-colors duration-500 ${colorClass} drop-shadow-md`}>{statusText}</div>
+        </div>
+    );
+};
+
+const IndicatorTable = ({ title, data, delay }) => (
+    <div 
+        className="cyber-panel flex flex-col h-full opacity-0 animate-fade-in-up transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,240,255,0.15)]"
+        style={{ animationDelay: delay }}
+    >
+        <div className="px-5 py-3 border-b border-cyber-cyan/30 bg-cyber-dark flex justify-between items-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyber-cyan/10 to-transparent animate-pulse-slow pointer-events-none"></div>
+            <h3 className="font-display font-bold text-gray-200 relative z-10 flex items-center gap-2 text-sm tracking-wider">
+                <span className="w-2 h-4 bg-cyber-cyan"></span>
+                {title}
+            </h3>
+            <span className="text-[10px] font-mono bg-cyber-darker px-2 py-1 border border-cyber-cyan/20 text-cyber-cyan relative z-10">{data.length} VALS</span>
+        </div>
+        <div className="overflow-x-auto flex-1 p-2">
+            <table className="w-full text-sm text-left text-gray-400">
+                <thead className="text-[10px] text-cyber-yellow tracking-[0.2em] font-display bg-transparent border-b border-cyber-yellow/20">
+                    <tr>
+                        <th className="px-4 py-2 font-medium">SYS_NAME</th>
+                        <th className="px-4 py-2 font-medium text-right">METRIC</th>
+                        <th className="px-4 py-2 font-medium text-right">STATE</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                    {data.map((row, i) => {
+                        let actionColor = "text-gray-500";
+                        if (row.action.includes("Buy")) actionColor = "text-cyber-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]";
+                        if (row.action.includes("Sell")) actionColor = "text-cyber-pink drop-shadow-[0_0_5px_rgba(255,0,60,0.8)]";
+                        
+                        return (
+                            <tr key={i} className="hover:bg-cyber-cyan/10 transition-all duration-200 hover:-translate-y-0.5 group">
+                                <td className="px-4 py-2.5 group-hover:text-cyber-cyan transition-colors font-medium">{row.name}</td>
+                                <td className="px-4 py-2.5 font-mono text-gray-300 text-right group-hover:text-white transition-colors">{row.value}</td>
+                                <td className={`px-4 py-2.5 font-display font-bold text-right ${actionColor} transition-colors uppercase`}>{row.action}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    </div>
+);
+
+// -------------------------------------------------------------
+// MAIN APP COMPONENT
+// -------------------------------------------------------------
+
+const App = () => {
+    const [activeTab, setActiveTab] = useState("dashboard");
+    
+    // AI State
+    const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+    const [currentPrediction, setCurrentPrediction] = useState({
+        direction: "BUY",
+        confidence: 87,
+        logic: "Oscillators neutral. EMA crossovers trigger BUY threshold on 5m timeframe.",
+        timestamp: new Date()
+    });
+    
+    // Gauge values (mocked, slowly changing)
+    const [gauges, setGauges] = useState({
+        oscillators: 52,
+        summary: 65,
+        movingAverages: 78
+    });
+
+    // History and Learning
+    const [history, setHistory] = useState([
+        { id: 1, time: "12:00", pair: "EUR/USD", dir: "BUY", conf: 82, result: "Win" },
+        { id: 2, time: "12:05", pair: "EUR/USD", dir: "SELL", conf: 76, result: "Loss" },
+        { id: 3, time: "12:10", pair: "EUR/USD", dir: "BUY", conf: 89, result: "Win" },
+        { id: 4, time: "12:15", pair: "EUR/USD", dir: "BUY", conf: 91, result: "Win" },
+    ]);
+    
+    const [terminalLogs, setTerminalLogs] = useState([
+        { id: 1, msg: "[SYS] Initializing DDY Neural Net..." },
+        { id: 2, msg: "[DATA] Connected to real-time OHLCV exchange socket." },
+    ]);
+    
+    const terminalRef = useRef(null);
+    
+    // Timer Effect
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    generateNewSignal();
+                    return 300;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Randomize gauges slightly
+    useEffect(() => {
+        const jitter = setInterval(() => {
+            setGauges(prev => ({
+                oscillators: Math.min(100, Math.max(0, prev.oscillators + (Math.random() * 8 - 4))),
+                summary: Math.min(100, Math.max(0, prev.summary + (Math.random() * 6 - 3))),
+                movingAverages: Math.min(100, Math.max(0, prev.movingAverages + (Math.random() * 4 - 2))),
+            }));
+        }, 2000);
+        return () => clearInterval(jitter);
+    }, []);
+    
+    // Terminal Logs Effect
+    useEffect(() => {
+        const logMessages = [
+            "Fetching OHLCV stream > EUR/USD...",
+            "Computing Pandas-TA matrix [RSI, MACD, EMA9]...",
+            "Analyzing 5m momentum candle topology...",
+            "Executing predictive stat-models...",
+            "Evaluating t-1 candle result...",
+            "Optimizing backprop weights...",
+            "Adjusting neural net loss threshold...",
+            "Detecting micro-trend reversal signals...",
+            "Filtering out noise spikes..."
+        ];
+        
+        let logIdCounter = 3;
+        const logInterval = setInterval(() => {
+            const msg = logMessages[Math.floor(Math.random() * logMessages.length)];
+            const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            
+            setTerminalLogs(prev => {
+                const newLogs = [...prev, { id: logIdCounter++, msg: `[${timeStr}] ${msg}` }];
+                return newLogs.slice(-25); // Keep last 25
+            });
+        }, 3500);
+        
+        return () => clearInterval(logInterval);
+    }, []);
+
+    // Auto-scroll terminal
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTo({
+                top: terminalRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [terminalLogs]);
+
+    const generateNewSignal = () => {
+        const isBuy = Math.random() > 0.5;
+        const conf = Math.floor(Math.random() * 20) + 75; // 75-95%
+        const logics = [
+            "Support rejected. RSI bullish divergence detected.",
+            "MACD cross < 0. Bearish continuation likely.",
+            "Volume spike on breakout. Trend confirmed.",
+            "EMA alignment strong. Ignoring overbought signals.",
+            "StochRSI cross detected. Reversal imminent.",
+            "Bollinger Band squeeze upper boundary breach."
+        ];
+        
+        // Resolve previous signal
+        const prevResult = Math.random() > 0.3 ? "Win" : "Loss";
+        setHistory(prev => {
+            const newHistory = [...prev, {
+                id: Date.now(),
+                time: currentPrediction.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                pair: "EUR/USD",
+                dir: currentPrediction.direction,
+                conf: currentPrediction.confidence,
+                result: prevResult
+            }];
+            return newHistory.slice(-15);
+        });
+
+        setCurrentPrediction({
+            direction: isBuy ? "BUY" : "SELL",
+            confidence: conf,
+            logic: logics[Math.floor(Math.random() * logics.length)],
+            timestamp: new Date()
+        });
+    };
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // Stats
+    const totalSignals = history.length;
+    const wins = history.filter(h => h.result === "Win").length;
+    const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
+
+    // Mock Tables
+    const oscillatorsData = [
+        { name: "Relative Strength Index (14)", value: "54.21", action: "Neutral" },
+        { name: "Stochastic %K (14, 3, 3)", value: "78.40", action: "Sell" },
+        { name: "Commodity Channel Index (20)", value: "112.50", action: "Buy" },
+        { name: "Average Directional Index (14)", value: "22.10", action: "Neutral" },
+        { name: "Awesome Oscillator", value: "0.0045", action: "Buy" },
+        { name: "Momentum (10)", value: "0.0012", action: "Buy" },
+        { name: "MACD Level (12, 26)", value: "-0.0003", action: "Sell" },
+    ];
+
+    const maData = [
+        { name: "Exponential Moving Average (10)", value: "1.0924", action: "Buy" },
+        { name: "Simple Moving Average (10)", value: "1.0921", action: "Buy" },
+        { name: "Exponential Moving Average (20)", value: "1.0918", action: "Buy" },
+        { name: "Simple Moving Average (20)", value: "1.0915", action: "Buy" },
+        { name: "Exponential Moving Average (50)", value: "1.0930", action: "Sell" },
+        { name: "Simple Moving Average (50)", value: "1.0935", action: "Sell" },
+        { name: "Ichimoku Cloud Base Line (9, 26, 52)", value: "1.0925", action: "Neutral" },
+    ];
+
+    return (
+        <div className="min-h-screen flex flex-col relative z-10">
+            {/* HEADER */}
+            <header className="bg-cyber-dark/90 backdrop-blur-md border-b-2 border-cyber-cyan/40 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-[0_0_20px_rgba(0,240,255,0.15)] animate-fade-in">
+                <div className="flex items-center gap-4 group">
+                    <div className="bg-transparent border-2 border-cyber-cyan p-2 text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.5)] group-hover:shadow-[0_0_20px_rgba(0,240,255,0.8)] transition-all duration-300">
+                        <ZapIcon className="animate-glitch" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">
+                            NEXUS<span className="text-cyber-cyan">.AI</span>
+                        </h1>
+                        <p className="text-[10px] font-mono text-cyber-yellow font-bold tracking-[0.3em] uppercase mt-0.5">Pred-Engine v2.4 // Online</p>
+                    </div>
+                </div>
+                
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => setActiveTab("dashboard")}
+                        className={`px-6 py-2 text-sm font-display font-bold tracking-widest transition-all duration-300 flex items-center gap-2 uppercase border-2 ${activeTab === 'dashboard' ? 'bg-cyber-cyan/20 text-cyber-cyan border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.5)]' : 'bg-transparent text-gray-500 border-gray-700 hover:text-cyber-cyan hover:border-cyber-cyan hover:shadow-[0_0_10px_rgba(0,240,255,0.3)]'}`}
+                    >
+                        <ActivityIcon /> Dashboard
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab("learning")}
+                        className={`px-6 py-2 text-sm font-display font-bold tracking-widest transition-all duration-300 flex items-center gap-2 uppercase border-2 ${activeTab === 'learning' ? 'bg-cyber-purple/20 text-cyber-purple border-cyber-purple shadow-[0_0_15px_rgba(189,0,255,0.5)]' : 'bg-transparent text-gray-500 border-gray-700 hover:text-cyber-purple hover:border-cyber-purple hover:shadow-[0_0_10px_rgba(189,0,255,0.3)]'}`}
+                    >
+                        <BrainIcon /> Training Core
+                    </button>
+                </div>
+            </header>
+
+            {/* MAIN CONTENT */}
+            <main className="flex-1 p-6 flex flex-col gap-8 max-w-[1600px] mx-auto w-full">
+                
+                {activeTab === "dashboard" ? (
+                    <div className="flex flex-col gap-8">
+                        {/* SECTION 1: CHART */}
+                        <section className="w-full opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 className="text-sm font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 uppercase">
+                                    <TrendingUpIcon /> Market Matrix
+                                </h2>
+                                <div className="px-3 py-1 bg-cyber-green/10 text-cyber-green text-[10px] font-mono font-bold border border-cyber-green shadow-[0_0_10px_rgba(57,255,20,0.3)] flex items-center gap-2 tracking-[0.2em]">
+                                    <span className="w-2 h-2 bg-cyber-green animate-ping-slow"></span> DATALINK ACTIVE
+                                </div>
+                            </div>
+                            <TradingViewWidget />
+                        </section>
+
+                        {/* SECTION 2: GAUGES & AI PREDICTION */}
+                        <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                            
+                            {/* Technical Gauges */}
+                            <div className="xl:col-span-7 flex flex-col gap-2">
+                                <h2 className="text-sm font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 uppercase opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                                    <CrosshairIcon /> Technical Telemetry
+                                </h2>
+                                <div className="grid grid-cols-3 gap-6 h-full">
+                                    <Speedometer value={gauges.oscillators} label="Oscillators" delay="0.3s" />
+                                    <Speedometer value={gauges.summary} label="Summary" delay="0.4s" />
+                                    <Speedometer value={gauges.movingAverages} label="Moving Avgs" delay="0.5s" />
+                                </div>
+                            </div>
+                            
+                            {/* AI Prediction Card */}
+                            <div className="xl:col-span-5 flex flex-col gap-2 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                                <h2 className="text-sm font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 uppercase">
+                                    <BrainIcon className="animate-pulse"/> Next Vector Prediction
+                                </h2>
+                                
+                                <div className={`relative flex-1 p-8 flex flex-col border-2 transition-all duration-1000 bg-cyber-dark/80 backdrop-blur-md animate-float ${currentPrediction.direction === 'BUY' ? 'glow-card-buy' : 'glow-card-sell'}`} style={{clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%)'}}>
+                                    {/* Scanline overlay inside card */}
+                                    <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.05)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none"></div>
+
+                                    <div className="relative z-10 flex justify-between items-start mb-6">
+                                        <div>
+                                            <p className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-[0.3em] mb-2">Target Vector</p>
+                                            <div className="flex items-center gap-4">
+                                                <span className={`text-6xl font-display font-black tracking-widest drop-shadow-lg transition-colors duration-1000 ${currentPrediction.direction === 'BUY' ? 'text-cyber-cyan animate-glow-pulse-cyan' : 'text-cyber-pink animate-glow-pulse-pink'}`}>
+                                                    {currentPrediction.direction}
+                                                </span>
+                                                <div className={`flex items-center justify-center w-12 h-12 border-2 shadow-[0_0_15px_currentColor] ${currentPrediction.direction === 'BUY' ? 'bg-cyber-cyan/10 text-cyber-cyan border-cyber-cyan' : 'bg-cyber-pink/10 text-cyber-pink border-cyber-pink'}`}>
+                                                    {currentPrediction.direction === 'BUY' ? (
+                                                        <svg className="animate-bounce" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                                                    ) : (
+                                                        <svg className="animate-bounce" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="text-right">
+                                            <p className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-[0.3em] mb-2">Probability</p>
+                                            <div className="text-5xl font-display font-black text-cyber-yellow drop-shadow-[0_0_10px_rgba(252,238,10,0.5)]">
+                                                {currentPrediction.confidence}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative z-10 bg-black/60 p-4 border border-gray-800 mb-6 flex-1 shadow-inner group transition-colors hover:border-cyber-cyan/50">
+                                        <h4 className="text-[10px] text-cyber-cyan font-mono uppercase tracking-[0.3em] font-bold mb-2 flex items-center gap-2">
+                                            <ActivityIcon className="w-4 h-4" /> Logic Execution
+                                        </h4>
+                                        <p className="text-gray-300 font-mono text-sm leading-relaxed border-l-2 border-cyber-cyan pl-3">
+                                            {currentPrediction.logic}
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="relative z-10 flex items-center justify-between pt-5 border-t border-gray-800">
+                                        <div className="flex items-center gap-2 text-gray-400">
+                                            <ClockIcon className={`w-5 h-5 ${timeLeft <= 10 ? 'text-cyber-pink animate-ping' : ''}`} />
+                                            <span className="text-[10px] font-display font-bold tracking-[0.2em] uppercase">Time To Execution</span>
+                                        </div>
+                                        <div className={`text-4xl font-display font-bold tracking-widest ${timeLeft <= 10 ? 'text-cyber-pink animate-pulse drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-white'}`}>
+                                            {formatTime(timeLeft)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* SECTION 3: TABLES & TERMINAL */}
+                        <section className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-2 gap-6">
+                                <IndicatorTable title="OSC DATA" data={oscillatorsData} delay="0.6s" />
+                                <IndicatorTable title="MA DATA" data={maData} delay="0.7s" />
+                            </div>
+                            
+                            <div className="flex flex-col gap-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+                                <div className="cyber-panel p-5 h-full flex flex-col relative overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.15)]">
+                                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-cyber-cyan/30 relative z-10">
+                                        <h3 className="font-display font-bold tracking-[0.2em] text-cyber-cyan flex items-center gap-2 text-sm uppercase">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" className="text-cyber-cyan animate-pulse"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                                            System Terminal
+                                        </h3>
+                                        <span className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-black bg-cyber-cyan px-2 py-1 shadow-[0_0_10px_rgba(0,240,255,0.5)]">
+                                            <span className="w-1.5 h-1.5 bg-black animate-ping"></span>
+                                            LIVE LOG
+                                        </span>
+                                    </div>
+                                    <div 
+                                        ref={terminalRef}
+                                        className="terminal-scroll flex-1 bg-black/80 p-4 font-mono text-[12px] leading-6 text-gray-400 overflow-y-auto max-h-[260px] shadow-inner border border-gray-900 relative z-10"
+                                    >
+                                        {terminalLogs.map((log) => (
+                                            <div key={log.id} className="mb-2 animate-slide-in-right opacity-0" style={{ animationFillMode: 'forwards' }}>
+                                                <span className="text-cyber-yellow font-bold mr-2">root@ddy:~#</span>
+                                                <span className="text-cyber-green">{log.msg}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                ) : (
+                    /* LEARNING TAB */
+                    <div className="flex flex-col gap-8 h-full">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {/* Stats */}
+                            <div className="cyber-panel p-8 flex flex-col justify-center items-center opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                                <h3 className="text-cyber-cyan font-mono font-bold uppercase tracking-[0.3em] text-[10px] mb-4">Network Win Rate</h3>
+                                <div className="text-7xl font-display font-black text-cyber-cyan drop-shadow-[0_0_20px_rgba(0,240,255,0.6)] animate-pulse">
+                                    {winRate}%
+                                </div>
+                                <div className="mt-6 px-4 py-1 bg-black border-2 border-gray-800 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">
+                                    Sample Size: <span className="text-cyber-cyan">{totalSignals}</span> epochs
+                                </div>
+                            </div>
+                            
+                            <div className="cyber-panel p-8 flex flex-col justify-center items-center opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                                <h3 className="text-cyber-cyan font-mono font-bold uppercase tracking-[0.3em] text-[10px] mb-6">True / False Signals</h3>
+                                <div className="flex items-center gap-6 text-5xl font-display font-black">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-cyber-green drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]">{wins}</span>
+                                        <span className="text-[10px] font-mono text-cyber-green/70 uppercase mt-2 tracking-widest">Valid</span>
+                                    </div>
+                                    <span className="text-gray-700 font-light text-6xl">|</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-cyber-pink drop-shadow-[0_0_15px_rgba(255,0,60,0.5)]">{totalSignals - wins}</span>
+                                        <span className="text-[10px] font-mono text-cyber-pink/70 uppercase mt-2 tracking-widest">Invalid</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="cyber-panel p-6 flex flex-col justify-center opacity-0 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                                <h3 className="text-cyber-cyan font-mono font-bold uppercase tracking-[0.3em] text-[10px] mb-6 flex items-center gap-2">
+                                    <ActivityIcon className="w-4 h-4" /> Neural Weights Matrix
+                                </h3>
+                                <div className="space-y-5">
+                                    <div className="group">
+                                        <div className="flex justify-between text-[10px] font-mono font-bold mb-2 uppercase tracking-widest">
+                                            <span className="text-gray-400 group-hover:text-cyber-cyan transition-colors">Oscillators</span>
+                                            <span className="text-cyber-cyan">40%</span>
+                                        </div>
+                                        <div className="w-full bg-black h-3 border border-gray-800 overflow-hidden">
+                                            <div className="bg-cyber-cyan h-full relative" style={{ width: '40%' }}>
+                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 animate-glitch"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="group">
+                                        <div className="flex justify-between text-[10px] font-mono font-bold mb-2 uppercase tracking-widest">
+                                            <span className="text-gray-400 group-hover:text-cyber-purple transition-colors">Momentum & Volume</span>
+                                            <span className="text-cyber-purple">35%</span>
+                                        </div>
+                                        <div className="w-full bg-black h-3 border border-gray-800 overflow-hidden">
+                                            <div className="bg-cyber-purple h-full relative" style={{ width: '35%' }}>
+                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 animate-glitch" style={{animationDelay: '0.2s'}}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="group">
+                                        <div className="flex justify-between text-[10px] font-mono font-bold mb-2 uppercase tracking-widest">
+                                            <span className="text-gray-400 group-hover:text-cyber-yellow transition-colors">EMA Core</span>
+                                            <span className="text-cyber-yellow">25%</span>
+                                        </div>
+                                        <div className="w-full bg-black h-3 border border-gray-800 overflow-hidden">
+                                            <div className="bg-cyber-yellow h-full relative" style={{ width: '25%' }}>
+                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 animate-glitch" style={{animationDelay: '0.4s'}}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Learning Status Banner */}
+                        <div className="bg-cyber-purple/10 border-2 border-cyber-purple p-6 flex items-center gap-6 shadow-[0_0_20px_rgba(189,0,255,0.2)] opacity-0 animate-fade-in-up" style={{ animationDelay: '0.4s', clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%)' }}>
+                            <div className="bg-cyber-purple/20 p-4 text-cyber-purple border border-cyber-purple/50">
+                                <BrainIcon className="animate-spin-slow w-8 h-8" />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-white font-display font-bold tracking-[0.2em] uppercase mb-2 flex items-center gap-3">
+                                    Reinforcement Protocol <span className="text-cyber-purple">Active</span>
+                                    <span className="flex h-3 w-3 relative">
+                                      <span className="animate-ping absolute inline-flex h-full w-full bg-cyber-purple opacity-75"></span>
+                                      <span className="relative inline-flex h-3 w-3 bg-cyber-purple"></span>
+                                    </span>
+                                </h4>
+                                <p className="text-sm text-gray-400 font-mono leading-relaxed max-w-4xl border-l-2 border-cyber-purple pl-4">
+                                    System analyzing t-1 False vectors. Recalculating loss function gradient and applying momentum decay to RSI divergence weights. 5m topology optimized for future execution.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* History Table */}
+                        <div className="cyber-panel flex-1 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                            <div className="px-6 py-4 border-b border-cyber-cyan/30 bg-black/50 flex justify-between items-center">
+                                <h3 className="font-display font-bold text-cyber-cyan flex items-center gap-2 text-sm tracking-widest uppercase">
+                                    <ClockIcon /> Execution History
+                                </h3>
+                                <div className="text-[10px] font-mono text-cyber-cyan bg-cyber-cyan/10 px-3 py-1 border border-cyber-cyan/30 tracking-[0.3em] uppercase">Sync_Active</div>
+                            </div>
+                            <div className="overflow-x-auto p-2">
+                                <table className="w-full text-sm text-left text-gray-300">
+                                    <thead className="text-[10px] text-gray-500 font-mono tracking-[0.3em] uppercase bg-transparent border-b border-gray-800">
+                                        <tr>
+                                            <th className="px-6 py-4 font-medium">TIMESTAMP</th>
+                                            <th className="px-6 py-4 font-medium">ASSET</th>
+                                            <th className="px-6 py-4 font-medium text-center">VECTOR</th>
+                                            <th className="px-6 py-4 font-medium text-center">PROBABILITY</th>
+                                            <th className="px-6 py-4 font-medium">OUTCOME</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-800/50">
+                                        {history.map((row, idx) => (
+                                            <tr key={row.id} className="hover:bg-cyber-cyan/10 transition-all duration-300 group" style={{ animation: `fadeInUp 0.3s ease-out forwards ${idx * 0.05}s`, opacity: 0 }}>
+                                                <td className="px-6 py-4 text-gray-500 font-mono group-hover:text-cyber-cyan transition-colors">{row.time}</td>
+                                                <td className="px-6 py-4 font-display font-bold text-white">{row.pair}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`inline-block px-4 py-1 text-xs font-display font-black tracking-[0.2em] border-2 uppercase ${row.dir === 'BUY' ? 'text-cyber-cyan border-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'text-cyber-pink border-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.3)]'}`}>
+                                                        {row.dir}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 font-display font-bold text-center text-cyber-yellow group-hover:text-white transition-colors">{row.conf}%</td>
+                                                <td className="px-6 py-4">
+                                                    <div className={`inline-flex items-center gap-2 font-display font-bold text-xs tracking-widest uppercase ${row.result === 'Win' ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                                                        {row.result === 'Win' ? (
+                                                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><polyline points="20 6 9 17 4 12"></polyline></svg> VALID</>
+                                                        ) : (
+                                                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> INVALID</>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )).reverse()}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+
+            </main>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+
+    </script>
+</body>
+</html>
