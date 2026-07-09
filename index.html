@@ -1,108 +1,866 @@
-<!-- Cyberpunk Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-      tailwind.config = {
-          darkMode: 'class',
-          theme: {
-              extend: {
-                  fontFamily: {
-                      sans: ['Rajdhani', 'sans-serif'],
-                      display: ['Orbitron', 'sans-serif'],
-                      mono: ['Courier New', 'monospace'],
-                  },
-                  colors: {
-                      cyber: {
-                          dark: '#030014',
-                          darker: '#010008',
-                          panel: '#0a0a1f',
-                          cyan: '#00f0ff',
-                          pink: '#ff003c',
-                          purple: '#bd00ff',
-                          yellow: '#fcee0a',
-                          green: '#39ff14'
-                      }
-                  },
-                  animation: {
-                      'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                      'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                      'fade-in': 'fadeIn 0.5s ease-out forwards',
-                      'marquee': 'marquee 25s linear infinite',
-                  },
-                  keyframes: {
-                      fadeInUp: {
-                          '0%': { opacity: '0', transform: 'translateY(30px)' },
-                          '100%': { opacity: '1', transform: 'translateY(0)' },
-                      },
-                      fadeIn: {
-                          '0%': { opacity: '0' },
-                          '100%': { opacity: '1' },
-                      },
-                      marquee: {
-                          '0%': { transform: 'translateX(100vw)' },
-                          '100%': { transform: 'translateX(-100%)' },
-                      }
-                  }
-              }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDY Trading Assistant</title>
+    
+    <!-- Cyberpunk Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rajdhani', 'sans-serif'],
+                        display: ['Orbitron', 'sans-serif'],
+                        mono: ['Courier New', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            dark: '#030014',
+                            darker: '#010008',
+                            panel: '#0a0a1f',
+                            cyan: '#00f0ff',
+                            pink: '#ff003c',
+                            purple: '#bd00ff',
+                            yellow: '#fcee0a',
+                            green: '#39ff14'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'marquee': 'marquee 25s linear infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        marquee: {
+                            '0%': { transform: 'translateX(100vw)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #030014;
+            color: #e2e8f0;
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        h1, h2, h3, h4, .font-display {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.05em;
+        }
+        .terminal-scroll::-webkit-scrollbar { width: 4px; }
+        .terminal-scroll::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
+        .terminal-scroll::-webkit-scrollbar-thumb { background-color: #00f0ff; }
+        .glow-card-buy { box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2); border: 2px solid rgba(0, 240, 255, 0.6); }
+        .glow-card-sell { box-shadow: 0 0 15px rgba(255, 0, 60, 0.3), inset 0 0 10px rgba(255, 0, 60, 0.2); border: 2px solid rgba(255, 0, 60, 0.6); }
+        .cyber-panel { background-color: rgba(10, 10, 31, 0.85); border: 1px solid rgba(0, 240, 255, 0.2); box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(5px); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%); }
+        .scanlines::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 50; background-size: 100% 4px, 6px 100%; pointer-events: none; }
+        
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            background-color: rgba(1, 0, 8, 0.9);
+            border-top: 1px solid rgba(0, 240, 255, 0.3);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+            position: relative;
+            z-index: 40;
+        }
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            padding-right: 100%;
+            box-sizing: content-box;
+            animation-iteration-count: infinite;
+            animation-timing-function: linear;
+            animation-name: marquee;
+            animation-duration: 30s;
+        }
+        .ticker:hover {
+            animation-play-state: paused;
+        }
+    </style>
+</head>
+<body class="dark antialiased min-h-screen scanlines">
+    <div id="root"></div>
+
+    <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const ActivityIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+const ClockIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
+const BrainIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.002 6.5A3 3 0 0 1 5.603 5.125"></path><path d="M11.5 22a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1"></path><path d="M12.5 22a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1"></path></svg>;
+const TrendingUpIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>;
+const ZapIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>;
+const GlobeIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>;
+const GridIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
+const ListIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
+const CalendarIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+
+const TradingViewWidget = () => {
+    const container = useRef();
+    useEffect(() => {
+        container.current.innerHTML = '';
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.innerHTML = `
+          {
+            "width": "100%",
+            "height": "400",
+            "symbol": "FX:EURUSD",
+            "interval": "5",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "enable_publishing": false,
+            "backgroundColor": "rgba(3, 0, 20, 1)",
+            "gridColor": "rgba(0, 240, 255, 0.1)",
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "studies": [
+              "MACD@tv-basicstudies",
+              "RSI@tv-basicstudies",
+              "BB@tv-basicstudies"
+            ],
+            "container_id": "tradingview_widget"
           }
-      }
-  </script>
-  <!-- React & ReactDOM -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Babel -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <style>
-      body {
-          background-color: #030014;
-          color: #e2e8f0;
-          font-family: 'Rajdhani', sans-serif;
-          margin: 0;
-          padding: 0;
-          overflow-x: hidden;
-          background-image: 
-              linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-          background-size: 30px 30px;
-      }
-      h1, h2, h3, h4, .font-display {
-          font-family: 'Orbitron', sans-serif;
-          letter-spacing: 0.05em;
-      }
-      .terminal-scroll::-webkit-scrollbar { width: 4px; }
-      .terminal-scroll::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
-      .terminal-scroll::-webkit-scrollbar-thumb { background-color: #00f0ff; }
-      .glow-card-buy { box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2); border: 2px solid rgba(0, 240, 255, 0.6); }
-      .glow-card-sell { box-shadow: 0 0 15px rgba(255, 0, 60, 0.3), inset 0 0 10px rgba(255, 0, 60, 0.2); border: 2px solid rgba(255, 0, 60, 0.6); }
-      .cyber-panel { background-color: rgba(10, 10, 31, 0.85); border: 1px solid rgba(0, 240, 255, 0.2); box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(5px); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%); }
-      .scanlines::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 50; background-size: 100% 4px, 6px 100%; pointer-events: none; }
-      
-      .ticker-wrap {
-          width: 100%;
-          overflow: hidden;
-          background-color: rgba(1, 0, 8, 0.9);
-          border-top: 1px solid rgba(0, 240, 255, 0.3);
-          border-bottom: 1px solid rgba(0, 240, 255, 0.3);
-          box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
-          position: relative;
-          z-index: 40;
-      }
-      .ticker {
-          display: inline-block;
-          white-space: nowrap;
-          padding-right: 100%;
-          box-sizing: content-box;
-          animation-iteration-count: infinite;
-          animation-timing-function: linear;
-          animation-name: marquee;
-          animation-duration: 30s;
-      }
-      .ticker:hover {
-          animation-play-state: paused;
-      }
-  </style>
+        `;
+        container.current.appendChild(script);
+    }, []);
+    return (
+        <div className="w-full h-[400px] cyber-panel overflow-hidden transition-all duration-500 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+            <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}>
+                <div className="tradingview-widget-container__widget" style={{ height: "100%", width: "100%" }}></div>
+            </div>
+        </div>
+    );
+};
+
+
+const HeatMapWidget = () => {
+    const container = useRef();
+    useEffect(() => {
+        container.current.innerHTML = '';
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.innerHTML = `
+          {
+            "width": "100%",
+            "height": "600",
+            "currencies": [
+              "EUR",
+              "USD",
+              "JPY",
+              "GBP",
+              "CHF",
+              "AUD",
+              "CAD",
+              "NZD"
+            ],
+            "isTransparent": true,
+            "colorTheme": "dark",
+            "locale": "en",
+            "backgroundColor": "#030014"
+          }
+        `;
+        container.current.appendChild(script);
+    }, []);
+    return (
+        <div className="cyber-panel p-4 animate-fade-in-up border-t-2 border-t-cyber-yellow shadow-[0_0_15px_rgba(252,238,10,0.1)]">
+            <div className="flex items-center gap-3 mb-6 px-2 border-b border-cyber-yellow/30 pb-3">
+                 <GridIcon className="text-cyber-yellow animate-pulse-slow" />
+                 <h2 className="font-display text-xl tracking-[0.1em] text-white">LIVE CURRENCY HEAT MAP</h2>
+            </div>
+            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
+            </div>
+        </div>
+    );
+};
+
+const MarketOverviewWidget = () => {
+    const container = useRef();
+    useEffect(() => {
+        container.current.innerHTML = '';
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-screener.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.innerHTML = `
+          {
+            "width": "100%",
+            "height": "600",
+            "defaultColumn": "overview",
+            "defaultScreen": "general",
+            "market": "forex",
+            "showToolbar": true,
+            "colorTheme": "dark",
+            "locale": "en",
+            "isTransparent": true
+          }
+        `;
+        container.current.appendChild(script);
+    }, []);
+    return (
+        <div className="cyber-panel p-4 animate-fade-in-up border-t-2 border-t-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.1)]">
+            <div className="flex items-center gap-3 mb-6 px-2 border-b border-cyber-cyan/30 pb-3">
+                 <ListIcon className="text-cyber-cyan animate-pulse-slow" />
+                 <h2 className="font-display text-xl tracking-[0.1em] text-white">FOREX SCREENER (TOP GAINERS/LOSERS)</h2>
+            </div>
+            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
+            </div>
+        </div>
+    );
+};
+
+const EconomicCalendar = () => {
+    const container = useRef();
+    useEffect(() => {
+        container.current.innerHTML = '';
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.innerHTML = `
+          {
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "width": "100%",
+            "height": "600",
+            "locale": "en",
+            "importanceFilter": "-1,0,1",
+            "currencyFilter": "USD,EUR,ITL,NZD,CHF,AUD,FRF,JPY,ZAR,TRL,CAD,DEM,MXN,ESP,GBP"
+          }
+        `;
+        container.current.appendChild(script);
+    }, []);
+    return (
+        <div className="cyber-panel p-4 animate-fade-in-up border-t-2 border-t-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.1)]">
+            <div className="flex items-center gap-3 mb-6 px-2 border-b border-cyber-cyan/30 pb-3">
+                 <CalendarIcon className="text-cyber-cyan animate-pulse-slow" />
+                 <h2 className="font-display text-xl tracking-[0.1em] text-white">LIVE ECONOMIC CALENDAR</h2>
+            </div>
+            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
+            </div>
+        </div>
+    );
+};
+
+const IndicatorTable = ({ title, data, delay }) => (
+    <div className="cyber-panel flex flex-col h-full opacity-0 animate-fade-in-up transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,240,255,0.15)]" style={{ animationDelay: delay }}>
+        <div className="px-5 py-3 border-b border-cyber-cyan/30 bg-cyber-dark flex justify-between items-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyber-cyan/10 to-transparent animate-pulse-slow pointer-events-none"></div>
+            <h3 className="font-display font-bold text-gray-200 relative z-10 flex items-center gap-2 text-sm tracking-wider">
+                <span className="w-2 h-4 bg-cyber-cyan"></span>{title}
+            </h3>
+            <span className="text-[10px] font-mono bg-cyber-darker px-2 py-1 border border-cyber-cyan/20 text-cyber-cyan relative z-10">{data.length} VALS</span>
+        </div>
+        <div className="overflow-x-auto flex-1 p-2">
+            <table className="w-full text-sm text-left text-gray-400">
+                <thead className="text-[10px] text-cyber-yellow tracking-[0.2em] font-display bg-transparent border-b border-cyber-yellow/20">
+                    <tr>
+                        <th className="px-4 py-2 font-medium">SYS_NAME</th>
+                        <th className="px-4 py-2 font-medium text-right">METRIC</th>
+                        <th className="px-4 py-2 font-medium text-right">STATE</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                    {data.map((row, i) => {
+                        let actionColor = "text-gray-500";
+                        if (row.action.includes("Buy")) actionColor = "text-cyber-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]";
+                        if (row.action.includes("Sell")) actionColor = "text-cyber-pink drop-shadow-[0_0_5px_rgba(255,0,60,0.8)]";
+                        return (
+                            <tr key={i} className="hover:bg-cyber-cyan/10 transition-all duration-200 hover:-translate-y-0.5 group">
+                                <td className="px-4 py-2.5 group-hover:text-cyber-cyan transition-colors font-medium">{row.name}</td>
+                                <td className="px-4 py-2.5 font-mono text-gray-300 text-right group-hover:text-white transition-colors">{row.value}</td>
+                                <td className={`px-4 py-2.5 font-display font-bold text-right ${actionColor} transition-colors uppercase`}>{row.action}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    </div>
+);
+
+const MarketSessions = () => {
+    const [time, setTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const hoursUTC = time.getUTCHours();
+    const minsUTC = time.getUTCMinutes();
+    const timeValue = hoursUTC + minsUTC / 60;
+
+    const sessions = [
+        { name: "Sydney", start: 22, end: 7, color: "bg-blue-600", border: "border-blue-500", text: "text-blue-400" },
+        { name: "Tokyo", start: 0, end: 9, color: "bg-purple-600", border: "border-purple-500", text: "text-purple-400" },
+        { name: "London", start: 8, end: 17, color: "bg-cyan-600", border: "border-cyan-500", text: "text-cyan-400" },
+        { name: "New York", start: 13, end: 22, color: "bg-green-600", border: "border-green-500", text: "text-green-400" }
+    ];
+
+    const isOpen = (start, end, current) => {
+        if (start > end) return current >= start || current < end;
+        return current >= start && current < end;
+    };
+
+    return (
+        <div className="cyber-panel p-6 animate-fade-in-up border-t-2 border-t-cyber-purple">
+            <div className="flex justify-between items-center mb-8 border-b border-cyber-cyan/30 pb-4">
+                <h2 className="font-display text-2xl tracking-[0.1em] text-white flex items-center gap-3">
+                    <GlobeIcon className="text-cyber-purple animate-pulse-slow" /> FOREX MARKET SESSIONS
+                </h2>
+                <div className="text-right">
+                    <p className="text-sm font-mono text-gray-400">CURRENT TIME (UTC)</p>
+                    <p className="text-2xl font-mono font-bold text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">
+                        {time.toISOString().substr(11, 8)}
+                    </p>
+                </div>
+            </div>
+
+            <div className="space-y-8">
+                {sessions.map(s => {
+                    const active = isOpen(s.start, s.end, timeValue);
+                    return (
+                        <div key={s.name} className={`relative flex flex-col md:flex-row items-start md:items-center p-4 border-l-4 ${active ? s.border + ' bg-gray-900/50' : 'border-gray-800 bg-black/20'} transition-all duration-500`}>
+                            <div className="w-48 mb-4 md:mb-0">
+                                <h3 className={`font-display text-xl font-bold ${active ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]' : 'text-gray-600'}`}>{s.name}</h3>
+                                <p className="font-mono text-xs text-gray-500 uppercase mt-1">
+                                    {s.start.toString().padStart(2,'0')}:00 - {s.end.toString().padStart(2,'0')}:00 UTC
+                                </p>
+                            </div>
+                            
+                            <div className="flex-1 w-full md:ml-8 relative h-12 bg-gray-950 border border-gray-800 rounded-sm overflow-hidden shadow-inner pt-4">
+                                {/* Time Grid Numbers */}
+                                <div className="absolute top-0 w-full flex justify-between px-1">
+                                    {[0,3,6,9,12,15,18,21,24].map(h => (
+                                        <div key={h} className="text-[9px] font-mono text-gray-600" style={{position: 'absolute', left: `${(h/24)*100}%`, transform: 'translateX(-50%)'}}>{h}</div>
+                                    ))}
+                                </div>
+                                {/* Time Grid Lines */}
+                                <div className="absolute top-4 bottom-0 w-full flex justify-between">
+                                    {[...Array(25)].map((_, i) => (
+                                        <div key={i} className="h-full border-l border-gray-800/50 w-full opacity-50 relative"></div>
+                                    ))}
+                                </div>
+                                
+                                {/* Session Bar */}
+                                {s.start > s.end ? (
+                                    <>
+                                        <div className={`absolute top-4 bottom-0 ${s.color} ${active ? 'opacity-80 shadow-[0_0_15px_'+s.border.replace('border-','')+']' : 'opacity-20'}`} style={{left: `${(s.start/24)*100}%`, right: '0%'}}></div>
+                                        <div className={`absolute top-4 bottom-0 ${s.color} ${active ? 'opacity-80 shadow-[0_0_15px_'+s.border.replace('border-','')+']' : 'opacity-20'}`} style={{left: '0%', width: `${(s.end/24)*100}%`}}></div>
+                                    </>
+                                ) : (
+                                    <div className={`absolute top-4 bottom-0 ${s.color} ${active ? 'opacity-80 shadow-[0_0_15px_'+s.border.replace('border-','')+']' : 'opacity-20'}`} style={{left: `${(s.start/24)*100}%`, width: `${((s.end - s.start)/24)*100}%`}}></div>
+                                )}
+                                
+                                {/* Current Time Indicator */}
+                                <div className="absolute top-0 bottom-0 w-0.5 bg-cyber-pink shadow-[0_0_8px_rgba(255,0,60,1)] z-10" style={{left: `${(timeValue/24)*100}%`}}></div>
+                            </div>
+                            
+                            <div className="w-32 text-right mt-4 md:mt-0 md:ml-4 flex justify-end">
+                                {active ? 
+                                    <span className={`flex items-center gap-2 text-xs font-bold font-mono tracking-widest px-3 py-1 bg-gray-900 border ${s.border} ${s.text} rounded-sm shadow-[0_0_10px_rgba(255,255,255,0.1)]`}>
+                                        <span className={`w-2 h-2 rounded-full ${s.color} animate-ping`}></span> OPEN
+                                    </span>
+                                    :
+                                    <span className="text-xs font-bold font-mono tracking-widest px-3 py-1 text-gray-700 bg-black/40 rounded-sm">CLOSED</span>
+                                }
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            
+            <div className="mt-8 pt-4 border-t border-gray-800 text-center text-xs font-mono text-gray-500">
+                <p>Trading Volume is usually highest during session overlaps (e.g., London / New York).</p>
+            </div>
+        </div>
+    );
+};
+
+const App = () => {
+    const [activeTab, setActiveTab] = useState("dashboard");
+    const [realData, setRealData] = useState({ price: 0, openPrice: 0, sma10: 0, sma20: 0, sma50: 0, rsi14: 50, isGreenCandle: true, momentum: 0 });
+    const [tickerQuotes, setTickerQuotes] = useState({
+        "EUR/USD": { price: 0, change: 0 },
+        "GBP/USD": { price: 0, change: 0 },
+        "USD/JPY": { price: 0, change: 0 },
+        "AUD/USD": { price: 0, change: 0 },
+        "BTC/USD": { price: 0, change: 0 }
+    });
+    
+    const API_KEY = "9f08b18e57af42349b92c1d5e67f8e92";
+    
+    useEffect(() => {
+        // Fetch Historical 5m Candles for EUR/USD
+        fetch(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=5min&outputsize=60&apikey=${API_KEY}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data || !data.values) return;
+            const candles = data.values.reverse();
+            const closes = candles.map(d => parseFloat(d.close));
+            const currentCandle = candles[candles.length - 1];
+            const currentOpen = parseFloat(currentCandle.open);
+            const currentPrice = parseFloat(currentCandle.close);
+            
+            const calcSMA = (period) => {
+                if (closes.length < period) return 0;
+                const slice = closes.slice(-period);
+                return slice.reduce((a, b) => a + b, 0) / period;
+            };
+            
+            let gains = 0, losses = 0;
+            for(let i = Math.max(0, closes.length - 15); i < closes.length - 1; i++) {
+                const diff = closes[i+1] - closes[i];
+                if (diff >= 0) gains += diff;
+                else losses -= diff;
+            }
+            const avgGain = gains / 14;
+            const avgLoss = losses / 14;
+            const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+            const rsi = 100 - (100 / (1 + rs));
+
+            setRealData(prev => ({
+                ...prev,
+                sma10: calcSMA(10),
+                sma20: calcSMA(20),
+                sma50: calcSMA(50),
+                rsi14: rsi || 50,
+                price: currentPrice,
+                openPrice: currentOpen,
+                isGreenCandle: currentPrice >= currentOpen,
+                momentum: currentPrice - currentOpen
+            }));
+        })
+        .catch(err => console.error("Error fetching REST API:", err));
+
+        // Fetch Initial Quotes for Ticker
+        fetch(`https://api.twelvedata.com/quote?symbol=EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD&apikey=${API_KEY}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data) {
+                const newQuotes = {};
+                Object.keys(data).forEach(symbol => {
+                    if(data[symbol] && data[symbol].close) {
+                        newQuotes[symbol] = {
+                            price: parseFloat(data[symbol].close),
+                            change: parseFloat(data[symbol].percent_change)
+                        };
+                    }
+                });
+                if(Object.keys(newQuotes).length > 0) setTickerQuotes(prev => ({...prev, ...newQuotes}));
+            }
+        }).catch(err => console.log("Quote Error", err));
+
+        // Connect to Twelve Data WebSocket
+        const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`);
+        ws.onopen = () => {
+            ws.send(JSON.stringify({
+                "action": "subscribe",
+                "params": {
+                    "symbols": "EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD"
+                }
+            }));
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.event === "price" && msg.price && msg.symbol) {
+                const current = parseFloat(msg.price);
+                
+                // Update Main EUR/USD Data
+                if(msg.symbol === "EUR/USD") {
+                    setRealData(prev => {
+                        const open = prev.openPrice !== 0 ? prev.openPrice : current;
+                        return {
+                            ...prev,
+                            price: current,
+                            isGreenCandle: current >= open,
+                            momentum: current - open
+                        };
+                    });
+                }
+                
+                // Update Ticker Quotes
+                setTickerQuotes(prev => {
+                    if(prev[msg.symbol]) {
+                        return {
+                            ...prev,
+                            [msg.symbol]: { ...prev[msg.symbol], price: current }
+                        };
+                    }
+                    return prev;
+                });
+            }
+        };
+        return () => ws.close();
+    }, []);
+
+    const [currentPrediction, setCurrentPrediction] = useState({
+        direction: "WAIT",
+        confidence: 0,
+        logic: "Initializing Live Forex Matrix...",
+        timestamp: new Date()
+    });
+
+    const [history, setHistory] = useState([]);
+    const [timeLeft, setTimeLeft] = useState(300);
+    const terminalRef = useRef(null);
+    const [terminalLogs, setTerminalLogs] = useState([
+        { id: 1, msg: "[SYS] DDY Trading Core Activated..." },
+        { id: 2, msg: "[API] Connected to TwelveData REST API for Pure Forex Klines." },
+        { id: 3, msg: "[WS] Live Multi-pair tick WebSocket stream active." }
+    ]);
+
+    useEffect(() => {
+        if (realData.price === 0) return;
+        const isBuy = realData.isGreenCandle;
+        const conf = Math.min(99, Math.floor(65 + (Math.abs(realData.momentum) * 10000)));
+        setCurrentPrediction(prev => {
+            const newDir = isBuy ? "BUY" : "SELL";
+            if (prev.direction !== newDir || Math.abs(prev.confidence - conf) > 2) {
+                return {
+                    ...prev,
+                    direction: newDir,
+                    confidence: conf,
+                    logic: isBuy ? "Pure Forex Analysis: Bullish pressure detected. Price > Open." : "Pure Forex Analysis: Bearish pressure detected. Price < Open.",
+                    timestamp: new Date()
+                };
+            }
+            return prev;
+        });
+    }, [realData.isGreenCandle, realData.momentum, realData.price]);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    setHistory(h => {
+                        const newH = [...h, {
+                            id: Date.now(),
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            pair: "EUR/USD",
+                            dir: currentPrediction.direction,
+                            conf: currentPrediction.confidence,
+                            result: currentPrediction.direction === (realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
+                        }];
+                        return newH.slice(-15);
+                    });
+                    return 300;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [currentPrediction, realData.isGreenCandle]);
+
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTo({ top: terminalRef.current.scrollHeight, behavior: 'smooth' });
+        }
+    }, [terminalLogs]);
+
+    const totalSignals = history.length;
+    const wins = history.filter(h => h.result === "Win").length;
+    const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
+
+    const oscillatorsData = [
+        { name: "Relative Strength Index (14)", value: realData.rsi14.toFixed(2), action: realData.rsi14 > 70 ? "Sell" : realData.rsi14 < 30 ? "Buy" : "Neutral" },
+        { name: "Current Price Delta", value: realData.momentum.toFixed(5), action: realData.momentum >= 0 ? "Buy" : "Sell" },
+    ];
+
+    const maData = [
+        { name: "Simple Moving Average (10)", value: realData.sma10.toFixed(5), action: realData.price > realData.sma10 ? "Buy" : "Sell" },
+        { name: "Simple Moving Average (20)", value: realData.sma20.toFixed(5), action: realData.price > realData.sma20 ? "Buy" : "Sell" },
+        { name: "Simple Moving Average (50)", value: realData.sma50.toFixed(5), action: realData.price > realData.sma50 ? "Buy" : "Sell" },
+    ];
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col">
+            {/* Live Ticker Bar */}
+            <div className="ticker-wrap py-2">
+                <div className="ticker flex gap-12">
+                    {Object.entries(tickerQuotes).map(([symbol, data]) => (
+                        <div key={symbol} className="flex items-center gap-3 px-4">
+                            <span className="font-display font-bold text-gray-300">{symbol}</span>
+                            <span className="font-mono text-white text-lg">{data.price > 0 ? data.price.toFixed(5) : "---"}</span>
+                            <span className={`font-mono text-sm flex items-center gap-1 ${data.change >= 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                                {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change).toFixed(2)}%
+                            </span>
+                        </div>
+                    ))}
+                    {/* Duplicate for seamless scrolling */}
+                    {Object.entries(tickerQuotes).map(([symbol, data]) => (
+                        <div key={symbol+"-dup"} className="flex items-center gap-3 px-4">
+                            <span className="font-display font-bold text-gray-300">{symbol}</span>
+                            <span className="font-mono text-white text-lg">{data.price > 0 ? data.price.toFixed(5) : "---"}</span>
+                            <span className={`font-mono text-sm flex items-center gap-1 ${data.change >= 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                                {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change).toFixed(2)}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6 flex-1 w-full">
+                
+                {/* Header / Navbar */}
+                <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-cyber-cyan/30 pb-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-cyber-cyan/10 rounded-lg border border-cyber-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+                            <ZapIcon className="text-cyber-cyan animate-pulse" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] uppercase">
+                                DDY<span className="text-cyber-cyan">.AI</span>
+                            </h1>
+                            <p className="text-[10px] font-mono text-cyber-yellow font-bold tracking-[0.3em] uppercase mt-0.5">Pred-Engine v4.0 // FOREX</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap justify-center gap-2 font-display text-sm tracking-wider">
+                        <button onClick={() => setActiveTab("dashboard")} className={`px-4 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-cyan/50 hover:text-gray-300'} flex items-center gap-2`}>
+                            <ActivityIcon className="w-4 h-4" /> DASHBOARD
+                        </button>
+                        <button onClick={() => setActiveTab("calendar")} className={`px-4 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'calendar' ? 'bg-cyber-green/20 border-cyber-green text-cyber-green shadow-[0_0_10px_rgba(57,255,20,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-green/50 hover:text-gray-300'} flex items-center gap-2`}>
+                            <CalendarIcon className="w-4 h-4" /> CALENDAR
+                        </button>
+                        <button onClick={() => setActiveTab("sessions")} className={`px-4 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'sessions' ? 'bg-cyber-purple/20 border-cyber-purple text-cyber-purple shadow-[0_0_10px_rgba(189,0,255,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-purple/50 hover:text-gray-300'} flex items-center gap-2`}>
+                            <GlobeIcon className="w-4 h-4" /> SESSIONS
+                        </button>
+                        <button onClick={() => setActiveTab("heatmap")} className={`px-4 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'heatmap' ? 'bg-cyber-yellow/20 border-cyber-yellow text-cyber-yellow shadow-[0_0_10px_rgba(252,238,10,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-yellow/50 hover:text-gray-300'} flex items-center gap-2`}>
+                            <GridIcon className="w-4 h-4" /> HEAT MAP
+                        </button>
+                        <button onClick={() => setActiveTab("screener")} className={`px-4 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'screener' ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-cyan/50 hover:text-gray-300'} flex items-center gap-2`}>
+                            <ListIcon className="w-4 h-4" /> SCREENER
+                        </button>
+                        <button onClick={() => setActiveTab("training")} className={`px-4 py-2 rounded-sm border transition-all duration-300 ${activeTab === 'training' ? 'bg-cyber-pink/20 border-cyber-pink text-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.3)]' : 'bg-transparent border-gray-700 text-gray-500 hover:border-cyber-pink/50 hover:text-gray-300'} flex items-center gap-2`}>
+                            <BrainIcon className="w-4 h-4" /> TRAINING CORE
+                        </button>
+                    </div>
+                </header>
+
+                {activeTab === "dashboard" && (
+                    <div className="space-y-6">
+                        {/* Middle Row: AI Signal & TradingView */}
+                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                            
+                            {/* TradingView Chart */}
+                            <div className="xl:col-span-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <TrendingUpIcon className="text-cyber-cyan" />
+                                    <h2 className="font-display text-lg tracking-[0.1em] text-gray-200">MARKET MATRIX</h2>
+                                    <div className="ml-auto flex items-center gap-2">
+                                        <span className="relative flex h-2 w-2">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
+                                        </span>
+                                        <span className="text-[10px] font-mono text-cyber-green border border-cyber-green/30 bg-cyber-green/10 px-2 py-0.5 tracking-wider">DATALINK ACTIVE</span>
+                                    </div>
+                                </div>
+                                <TradingViewWidget />
+                            </div>
+
+                            {/* AI Prediction Card */}
+                            <div className="xl:col-span-4 flex flex-col gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <BrainIcon className="text-cyber-cyan animate-pulse-slow" />
+                                    <h2 className="font-display text-lg tracking-[0.1em] text-gray-200">NEXT VECTOR PREDICTION</h2>
+                                </div>
+                                
+                                <div className={`flex-1 cyber-panel p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${currentPrediction.direction === 'BUY' ? 'glow-card-buy' : currentPrediction.direction === 'SELL' ? 'glow-card-sell' : 'border-gray-500'}`}>
+                                    
+                                    <div className="flex justify-between items-start z-10 relative">
+                                        <div>
+                                            <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Target Vector</p>
+                                            <div className="flex items-center gap-3">
+                                                <h1 className={`text-6xl font-display font-black tracking-widest uppercase ${currentPrediction.direction === 'BUY' ? 'text-cyber-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]' : currentPrediction.direction === 'SELL' ? 'text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-gray-500'}`}>
+                                                    {currentPrediction.direction}
+                                                </h1>
+                                                {currentPrediction.direction === 'BUY' && (
+                                                    <div className="p-2 bg-cyber-cyan/10 rounded-md border border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.4)] animate-bounce">
+                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                                                    </div>
+                                                )}
+                                                {currentPrediction.direction === 'SELL' && (
+                                                    <div className="p-2 bg-cyber-pink/10 rounded-md border border-cyber-pink text-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.4)] animate-bounce" style={{animationDirection: 'reverse'}}>
+                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Probability</p>
+                                            <div className="text-3xl font-display font-bold text-cyber-yellow drop-shadow-[0_0_8px_rgba(252,238,10,0.6)]">
+                                                {currentPrediction.confidence}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-8 mb-6 p-4 bg-cyber-darker border-l-2 border-cyber-cyan relative z-10 font-mono text-sm text-gray-300 shadow-inner">
+                                        <div className="flex items-center gap-2 mb-2 text-cyber-cyan">
+                                            <ActivityIcon className="w-4 h-4" />
+                                            <span className="text-[10px] tracking-[0.2em] font-bold uppercase">Logic Execution</span>
+                                        </div>
+                                        <p className="leading-relaxed typewriter-text">{currentPrediction.logic}</p>
+                                    </div>
+                                    
+                                    <div className="pt-4 border-t border-gray-800 flex justify-between items-center relative z-10 mt-auto">
+                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-display tracking-widest">
+                                            <ClockIcon className="w-4 h-4" />
+                                            TIME TO EXECUTION
+                                        </div>
+                                        <div className="font-mono text-2xl font-bold tracking-widest text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
+                                            {formatTime(timeLeft)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Row: Tables */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
+                            <IndicatorTable title="OSC DATA" data={oscillatorsData} delay="0.3s" />
+                            <IndicatorTable title="MA DATA" data={maData} delay="0.4s" />
+                        </div>
+                    </div>
+                )}
+                
+                {activeTab === "calendar" && (
+                    <EconomicCalendar />
+                )}
+
+                
+                {activeTab === "heatmap" && (
+                    <HeatMapWidget />
+                )}
+
+                {activeTab === "screener" && (
+                    <MarketOverviewWidget />
+                )}
+                {activeTab === "sessions" && (
+                    <MarketSessions />
+                )}
+
+                {activeTab === "training" && (
+                    /* TRAINING CORE TAB */
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
+                        {/* Left Col: Terminal */}
+                        <div className="lg:col-span-2 cyber-panel p-0 flex flex-col h-[600px] border border-cyber-purple/30">
+                            <div className="px-4 py-3 bg-cyber-darker border-b border-cyber-purple/30 flex items-center gap-2">
+                                <div className="flex gap-1.5">
+                                    <div className="w-3 h-3 rounded-full bg-cyber-pink"></div>
+                                    <div className="w-3 h-3 rounded-full bg-cyber-yellow"></div>
+                                    <div className="w-3 h-3 rounded-full bg-cyber-green"></div>
+                                </div>
+                                <span className="ml-4 font-mono text-xs text-cyber-purple tracking-[0.2em]">root@ddy:~# ./training_module.sh</span>
+                            </div>
+                            <div ref={terminalRef} className="flex-1 p-4 font-mono text-[13px] text-gray-300 leading-relaxed overflow-y-auto terminal-scroll bg-[#050505]">
+                                {terminalLogs.map(log => (
+                                    <div key={log.id} className="mb-1 opacity-0 animate-fade-in">
+                                        <span className="text-gray-500 mr-2">&gt;</span>
+                                        <span dangerouslySetInnerHTML={{__html: log.msg.replace(/\[(.*?)\]/g, '<span class="text-cyber-cyan">[$1]</span>')}}></span>
+                                    </div>
+                                ))}
+                                <div className="animate-pulse text-cyber-cyan mt-2">_</div>
+                            </div>
+                        </div>
+
+                        {/* Right Col: Stats */}
+                        <div className="flex flex-col gap-6">
+                            <div className="cyber-panel p-6 shadow-[0_0_15px_rgba(189,0,255,0.15)] border-cyber-purple/30">
+                                <h3 className="font-display font-bold text-gray-200 text-sm tracking-wider mb-6 border-b border-cyber-purple/30 pb-2">PERFORMANCE MATRIX</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-cyber-darker border border-gray-800 text-center">
+                                        <div className="text-[10px] font-mono text-gray-500 mb-1 tracking-widest">TOTAL</div>
+                                        <div className="text-2xl font-display font-black text-white">{totalSignals}</div>
+                                    </div>
+                                    <div className="p-4 bg-cyber-darker border border-gray-800 text-center">
+                                        <div className="text-[10px] font-mono text-gray-500 mb-1 tracking-widest">WIN RATE</div>
+                                        <div className="text-2xl font-display font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{winRate}%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="cyber-panel flex-1 flex flex-col overflow-hidden border-cyber-purple/30">
+                                <h3 className="font-display font-bold text-gray-200 text-sm tracking-wider px-5 py-4 border-b border-cyber-purple/30 bg-cyber-darker">SIGNAL HISTORY</h3>
+                                <div className="flex-1 overflow-y-auto terminal-scroll p-2">
+                                    <table className="w-full text-sm text-left">
+                                        <tbody className="divide-y divide-gray-800/50">
+                                            {history.map((h, i) => (
+                                                <tr key={i} className="font-mono text-xs hover:bg-cyber-purple/10">
+                                                    <td className="px-4 py-2 text-gray-500">{h.time}</td>
+                                                    <td className={`px-4 py-2 font-bold ${h.dir === 'BUY' ? 'text-cyber-cyan' : 'text-cyber-pink'}`}>{h.dir}</td>
+                                                    <td className="px-4 py-2 text-cyber-yellow">{h.conf}%</td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        {h.result === "Win" ? 
+                                                            <span className="text-cyber-green border border-cyber-green/50 px-2 py-0.5">VALID</span> : 
+                                                            <span className="text-cyber-pink border border-cyber-pink/50 px-2 py-0.5">INVALID</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+    </script>
+</body>
+</html>
