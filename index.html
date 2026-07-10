@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDY Trading Assistant - Dual Core</title>
+    <title>DDY Trading Assistant - Strict Mode Matrix</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,14 +67,12 @@
         .terminal-scroll::-webkit-scrollbar { width: 4px; }
         .terminal-scroll::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
         .terminal-scroll::-webkit-scrollbar-thumb { background-color: #00f0ff; }
-        .glow-card-buy { box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2); border: 2px solid rgba(0, 240, 255, 0.6); }
-        .glow-card-sell { box-shadow: 0 0 15px rgba(255, 0, 60, 0.3), inset 0 0 10px rgba(255, 0, 60, 0.2); border: 2px solid rgba(255, 0, 60, 0.6); }
-        .glow-card-crypto { box-shadow: 0 0 15px rgba(189, 0, 255, 0.3), inset 0 0 10px rgba(189, 0, 255, 0.2); border: 2px solid rgba(189, 0, 255, 0.6); }
         .cyber-panel { background-color: rgba(10, 10, 31, 0.75); border: 1px solid rgba(0, 240, 255, 0.2); box-shadow: 0 4px 30px rgba(0,0,0,0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%); }
         .scanlines::after { content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 100; background-size: 100% 2px, 3px 100%; pointer-events: none; opacity: 0.4; }
         .ticker-wrap { width: 100%; overflow: hidden; background: linear-gradient(90deg, rgba(3,0,20,1) 0%, rgba(10,10,31,0.9) 50%, rgba(3,0,20,1) 100%); border-bottom: 1px solid rgba(0, 240, 255, 0.3); box-shadow: 0 4px 15px rgba(0, 240, 255, 0.1); position: relative; z-index: 40; padding: 8px 0; white-space: nowrap; }
         .ticker-content { display: inline-flex; white-space: nowrap; width: fit-content; }
         .ticker-content:hover { animation-play-state: paused; }
+        .disconnected-card { border-color: rgba(255, 0, 60, 0.8) !important; background-color: rgba(255, 0, 60, 0.05) !important; box-shadow: 0 0 15px rgba(255,0,60,0.3) !important; }
     </style>
 </head>
 <body class="dark antialiased min-h-screen scanlines">
@@ -86,7 +84,6 @@ const { useState, useEffect, useRef } = React;
 const ActivityIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
 const ClockIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
 const BrainIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg>;
-const TrendingUpIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>;
 const ZapIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>;
 const GlobeIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>;
 const GridIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
@@ -274,12 +271,12 @@ const EconomicCalendar = () => {
 
 const LiveSignalFeed = ({ signals }) => {
     if (!signals || signals.length === 0) return (
-        <div className="mt-8 cyber-panel p-4 border-t-2 border-t-cyber-yellow">
+        <div className="mt-8 cyber-panel p-4 border-t-2 border-t-gray-600">
             <div className="flex items-center gap-3 mb-2 px-2">
-                 <ZapIcon className="text-cyber-yellow animate-pulse" />
-                 <h2 className="font-display text-lg tracking-[0.1em] text-white">LIVE AI SIGNAL FEED</h2>
+                 <ZapIcon className="text-gray-500 animate-pulse" />
+                 <h2 className="font-display text-lg tracking-[0.1em] text-gray-400">LIVE AI SIGNAL FEED</h2>
             </div>
-            <div className="p-4 text-center font-mono text-gray-500">Scanning neural nodes for streaming payloads...</div>
+            <div className="p-4 text-center font-mono text-cyber-pink font-bold">AWAITING SERVER STREAM...</div>
         </div>
     );
 
@@ -338,7 +335,7 @@ const IndicatorTable = ({ title, data, delay }) => (
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/50">
-                    {data && data.map((row, i) => {
+                    {data && data.length > 0 ? data.map((row, i) => {
                         let actionColor = "text-gray-500";
                         if (row.action && row.action.includes("Buy")) actionColor = "text-cyber-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]";
                         if (row.action && row.action.includes("Sell")) actionColor = "text-cyber-pink drop-shadow-[0_0_5px_rgba(255,0,60,0.8)]";
@@ -349,7 +346,9 @@ const IndicatorTable = ({ title, data, delay }) => (
                                 <td className={`px-4 py-2.5 font-display font-bold text-right ${actionColor} transition-colors uppercase`}>{row.action}</td>
                             </tr>
                         );
-                    })}
+                    }) : (
+                        <tr><td colSpan="3" className="text-center py-4 font-mono text-cyber-pink text-xs font-bold">DISCONNECTED - NO DATA</td></tr>
+                    )}
                 </tbody>
             </table>
         </div>
@@ -454,217 +453,123 @@ const formatTimeLeft = (seconds) => {
 
 const App = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
-    const [realData, setRealData] = useState({ price: 0, openPrice: 0, sma10: 0, sma20: 0, sma50: 0, rsi14: 50, isGreenCandle: true, momentum: 0 });
-    const [tickerQuotes, setTickerQuotes] = useState({
-        "EUR/USD": { price: 0, change: 0 }, "GBP/USD": { price: 0, change: 0 }, "USD/JPY": { price: 0, change: 0 }, "AUD/USD": { price: 0, change: 0 }, "BTC/USD": { price: 0, change: 0 }
-    });
+    const [tickerQuotes, setTickerQuotes] = useState({});
     
-    // API Status States
-    const [twelveDataConnected, setTwelveDataConnected] = useState(false);
-    const [neuralConnected, setNeuralConnected] = useState(false);
+    // SERVER CONNECTION STATES
+    const [isConnected, setIsConnected] = useState(false);
 
-    // Dynamic Countdown States
-    const [timeLeft, setTimeLeft] = useState(300);
-    const [cryptoTimeLeft, setCryptoTimeLeft] = useState(3600);
+    // DYNAMIC DATA STATES (All Default to Disconnected/Empty)
+    const [currentPrediction, setCurrentPrediction] = useState({ direction: "DISCONNECTED", confidence: 0, logic: "Server offline...", pair: "---", timeframe: "---" });
+    const [neuralPrediction, setNeuralPrediction] = useState({ direction: "DISCONNECTED", confidence: 0, logic: "Server offline...", pair: "---", timeframe: "---" });
+    const [cryptoPrediction, setCryptoPrediction] = useState({ direction: "DISCONNECTED", confidence: 0, logic: "Server offline...", pair: "---", timeframe: "---" });
+    
+    const [oscillatorsData, setOscillatorsData] = useState([]);
+    const [maData, setMaData] = useState([]);
 
-    // Cards State Logic
-    const [currentPrediction, setCurrentPrediction] = useState({ direction: "NEUTRAL", confidence: 0, logic: "Awaiting Datalink Stream...", pair: "EUR/USD", timeframe: "5 MIN" });
-    const [neuralPrediction, setNeuralPrediction] = useState({ direction: "OFFLINE", confidence: 0, logic: "Server link closed. Ensure server.py is running...", pair: "EUR/USD", timeframe: "5 MIN" });
-    const [cryptoPrediction, setCryptoPrediction] = useState({ direction: "STRONG BUY", confidence: 88, logic: "Binance Orderbook Imbalance Captured", pair: "BTC/USDT", timeframe: "1 HOUR" });
-
-    // Training Core Separate Logs Stats
     const [c1History, setC1History] = useState([]);
     const [c2History, setC2History] = useState([]);
     const [c3History, setC3History] = useState([]);
     const [scanHistory, setScanHistory] = useState([]);
-
     const [scannerFeed, setScannerFeed] = useState([]);
+
     const terminalRef = useRef(null);
     const [terminalLogs, setTerminalLogs] = useState([
-        { id: 1, msg: "[SYS] DDY Trading Core Activated..." },
-        { id: 2, msg: "[API] Connected to TwelveData REST API for Pure Forex Klines." },
-        { id: 3, msg: "[WS] Live Multi-pair tick WebSocket stream active." },
-        { id: 4, msg: "[LOGIC] Local Momentum Scalping Engine Initialized." }
+        { id: 1, msg: "[SYS] DDY Trading Core UI Loaded." },
+        { id: 2, msg: "[SYS] Strict-Mode Enforced. Waiting for Python WebSocket connection..." }
     ]);
 
-    const cryptoSymbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"];
+    // Timers (Visual Only)
+    const [timeLeft, setTimeLeft] = useState(300);
+    const [cryptoTimeLeft, setCryptoTimeLeft] = useState(3600);
+
     const API_KEY = "9f08b18e57af42349b92c1d5e67f8e92";
-    
-    // Core 01 Local Calculation Formula
-    const calculateLocalStrategy = (data) => {
-        if (!data || data.price === 0) return;
-        let direction = "NEUTRAL"; let score = 0; let reasons = [];
-        const { sma10, sma20, sma50, rsi14, isGreenCandle, price } = data;
-        
-        const isUptrend = sma10 > sma20 && price > sma50;
-        const isDowntrend = sma10 < sma20 && price < sma50;
 
-        if (isUptrend) {
-            score += 45; reasons.push("Price > SMA50 (Uptrend)");
-            if (rsi14 > 40 && rsi14 < 65) { score += 25; reasons.push("RSI Optimal Buy Zone"); }
-            if (isGreenCandle) { score += 20; reasons.push("Bullish Candle Momentum"); }
-            direction = score >= 75 ? "STRONG BUY" : "BUY";
-        } else if (isDowntrend) {
-            score += 45; reasons.push("Price < SMA50 (Downtrend)");
-            if (rsi14 < 60 && rsi14 > 35) { score += 25; reasons.push("RSI Optimal Sell Zone"); }
-            if (!isGreenCandle) { score += 20; reasons.push("Bearish Candle Momentum"); }
-            direction = score >= 75 ? "STRONG SELL" : "SELL";
-        } else {
-            score = 30 + Math.floor(Math.random() * 20);
-            if (rsi14 >= 70) { reasons.push("Overbought - Reversal Imminent"); direction = "SELL"; } 
-            else if (rsi14 <= 30) { reasons.push("Oversold - Reversal Imminent"); direction = "BUY"; } 
-            else { reasons.push("Market Consolidating. Awaiting Vector."); }
-        }
-
-        setCurrentPrediction({ direction, confidence: Math.min(score + Math.floor(Math.random()*5), 98), logic: reasons.join(" // "), pair: "EUR/USD", timeframe: "5 MIN" });
-    };
-
-    useEffect(() => { calculateLocalStrategy(realData); }, [realData.price, realData.rsi14, realData.sma10, realData.isGreenCandle]);
-
-    // Independent Decoupled Scanner Feed Loop
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const scanPairs = ["GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "EUR/JPY"];
-            const actions = ["BUY SCALP", "SELL SCALP", "MOMENTUM BLOCK", "BREAKOUT VECTOR"];
-            const tfOptions = ["5 MIN", "15 MIN"];
-            
-            const newSignal = {
-                id: Date.now(),
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                pair: scanPairs[Math.floor(Math.random() * scanPairs.length)],
-                dir: actions[Math.floor(Math.random() * actions.length)],
-                timeframe: tfOptions[Math.floor(Math.random() * tfOptions.length)],
-                price: (1.14 + Math.random() * 0.08).toFixed(5)
-            };
-
-            setScannerFeed(prev => [newSignal, ...prev].slice(0, 5));
-            setScanHistory(h => [{ id: Date.now(), time: newSignal.time, target: newSignal.pair, result: Math.random() > 0.4 ? "VALID" : "INVALID" }, ...h].slice(0, 10));
-        }, 4000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Core 03 Crypto Futures Loop
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const currentPair = cryptoSymbols[Math.floor(Math.random() * cryptoSymbols.length)];
-            const dirs = ["STRONG BUY", "STRONG SELL", "VOLATILITY REVERSAL"];
-            const conf = 75 + Math.floor(Math.random() * 22);
-            setCryptoPrediction({ pair: currentPair, direction: dirs[Math.floor(Math.random() * dirs.length)], confidence: conf, logic: `Binance Metrics Imbalance Level on ${currentPair}`, timeframe: "1 HOUR" });
-        }, 15000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Global Timing Execution Loop (5m + 1h Resets)
+    // Visual Countdown Clocks
     useEffect(() => {
         const timer = setInterval(() => {
             const now = new Date();
             const min = now.getMinutes();
             const sec = now.getSeconds();
-            
-            // 5 Min Sync
-            const remaining5m = 300 - ((min % 5) * 60 + sec);
-            setTimeLeft(remaining5m);
-            if (remaining5m === 300) {
-                setC1History(h => [{ id: Date.now(), time: now.toLocaleTimeString(), dir: currentPrediction.direction, state: Math.random() > 0.35 ? "TRUE" : "FALSE" }, ...h].slice(0, 10));
-                if (neuralConnected) {
-                    setC2History(h => [{ id: Date.now(), time: now.toLocaleTimeString(), dir: neuralPrediction.direction, state: Math.random() > 0.3 ? "TRUE" : "FALSE" }, ...h].slice(0, 10));
-                }
-            }
-
-            // 1 Hour Sync
-            const remaining1h = 3600 - (min * 60 + sec);
-            setCryptoTimeLeft(remaining1h);
-            if (remaining1h === 3600) {
-                setC3History(h => [{ id: Date.now(), time: now.toLocaleTimeString(), target: cryptoPrediction.pair, result: Math.random() > 0.4 ? "TRUE" : "FALSE" }, ...h].slice(0, 10));
-            }
+            setTimeLeft(300 - ((min % 5) * 60 + sec));
+            setCryptoTimeLeft(3600 - (min * 60 + sec));
         }, 1000);
         return () => clearInterval(timer);
-    }, [currentPrediction, neuralPrediction, cryptoPrediction, neuralConnected]);
+    }, []);
 
-    // WebSockets Handler Core
+    // ONLY FETCH PRICES FOR TICKER
+    useEffect(() => {
+        const fetchQuotes = () => {
+            fetch(`https://api.twelvedata.com/quote?symbol=EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD&apikey=${API_KEY}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    const newQuotes = {};
+                    Object.keys(data).forEach(s => {
+                        if(data[s] && data[s].close) newQuotes[s] = { price: parseFloat(data[s].close), change: parseFloat(data[s].percent_change) };
+                    });
+                    setTickerQuotes(prev => ({ ...prev, ...newQuotes }));
+                }
+            }).catch(e => {});
+        };
+        fetchQuotes();
+        const quoteInterval = setInterval(fetchQuotes, 60000); // Update ticker every minute
+        return () => clearInterval(quoteInterval);
+    }, []);
+
+    // STRICT WEBSOCKET ENGINE
     useEffect(() => {
         let socket;
-        setTwelveDataConnected(true);
-        const connectToNeuralCore = () => {
+        const connectToCore = () => {
             try {
                 socket = new WebSocket("ws://localhost:8765");
                 socket.onopen = () => {
-                    setNeuralConnected(true);
-                    setNeuralPrediction(prev => ({ ...prev, direction: "NEUTRAL", logic: "Link verified. Parsing remote python model..." }));
-                    setTerminalLogs(prev => [...prev, { id: Date.now(), msg: "[NET] Heterogeneous connection linked with local server core." }]);
+                    setIsConnected(true);
+                    setTerminalLogs(prev => [...prev, { id: Date.now(), msg: "[NET] Connected to DDY Server Engine. Receiving LIVE Data." }]);
                 };
                 socket.onmessage = (event) => {
                     try {
                         const payload = JSON.parse(event.data);
-                        if (payload.type === "neural_prediction") {
-                            setNeuralPrediction({ direction: payload.direction, confidence: payload.confidence, logic: payload.logic, pair: "EUR/USD", timeframe: "5 MIN" });
+                        if (payload.type === "core1") setCurrentPrediction(payload.data);
+                        if (payload.type === "core2") setNeuralPrediction(payload.data);
+                        if (payload.type === "core3") setCryptoPrediction(payload.data);
+                        
+                        if (payload.type === "scanner") {
+                            setScannerFeed(prev => [payload.data, ...prev].slice(0, 5));
                         }
-                        if (payload.type === "training_log") {
+                        if (payload.type === "osc_data") setOscillatorsData(payload.data);
+                        if (payload.type === "ma_data") setMaData(payload.data);
+                        
+                        if (payload.type === "history_c1") setC1History(prev => [payload.data, ...prev].slice(0, 10));
+                        if (payload.type === "history_c2") setC2History(prev => [payload.data, ...prev].slice(0, 10));
+                        if (payload.type === "history_c3") setC3History(prev => [payload.data, ...prev].slice(0, 10));
+                        if (payload.type === "history_scan") setScanHistory(prev => [payload.data, ...prev].slice(0, 10));
+
+                        if (payload.type === "log") {
                             setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now() + Math.random(), msg: payload.msg }]);
+                            if(terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
                         }
                     } catch(e) {}
                 };
                 socket.onclose = () => {
-                    setNeuralConnected(false);
-                    setNeuralPrediction(prev => ({ ...prev, direction: "OFFLINE", confidence: 0, logic: "Server link closed. Ensure server.py is executing in local terminal..." }));
-                    setTimeout(connectToNeuralCore, 5000);
+                    setIsConnected(false);
+                    // FORCE DISCONNECT STATE ON UI
+                    setCurrentPrediction({ direction: "DISCONNECTED", confidence: 0, logic: "Server offline...", pair: "---", timeframe: "---" });
+                    setNeuralPrediction({ direction: "DISCONNECTED", confidence: 0, logic: "Server offline...", pair: "---", timeframe: "---" });
+                    setCryptoPrediction({ direction: "DISCONNECTED", confidence: 0, logic: "Server offline...", pair: "---", timeframe: "---" });
+                    setOscillatorsData([]);
+                    setMaData([]);
+                    
+                    setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now(), msg: "[ERR] Connection Lost. Reconnecting in 3s..." }]);
+                    setTimeout(connectToCore, 3000);
                 };
             } catch(e) {}
         };
-        connectToNeuralCore();
+        connectToCore();
         return () => { if (socket) socket.close(); };
     }, []);
 
-    // Rest Fetching Layer
-    useEffect(() => {
-        fetch(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=5min&outputsize=60&apikey=${API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-            if (!data || !data.values || !Array.isArray(data.values)) return;
-            const candles = data.values.reverse();
-            const closes = candles.map(d => parseFloat(d.close));
-            const currentCandle = candles[candles.length - 1];
-            const currentOpen = parseFloat(currentCandle.open);
-            const currentPrice = parseFloat(currentCandle.close);
-            const calcSMA = (period) => closes.slice(-period).reduce((a, b) => a + b, 0) / period;
-            
-            let gains = 0, losses = 0;
-            for(let i = Math.max(0, closes.length - 15); i < closes.length - 1; i++) {
-                const diff = closes[i+1] - closes[i];
-                if (diff >= 0) gains += diff; else losses -= diff;
-            }
-            const rs = losses === 0 ? 100 : gains / losses;
-            const rsi = 100 - (100 / (1 + rs));
-
-            setRealData({ price: currentPrice, openPrice: currentOpen, sma10: calcSMA(10), sma20: calcSMA(20), sma50: calcSMA(50), rsi14: rsi || 50, isGreenCandle: currentPrice >= currentOpen, momentum: currentPrice - currentOpen });
-        }).catch(e => {});
-
-        fetch(`https://api.twelvedata.com/quote?symbol=EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD&apikey=${API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data) {
-                const newQuotes = {};
-                Object.keys(data).forEach(s => {
-                    if(data[s] && data[s].close) newQuotes[s] = { price: parseFloat(data[s].close), change: parseFloat(data[s].percent_change) };
-                });
-                setTickerQuotes(prev => ({ ...prev, ...newQuotes }));
-            }
-        });
-    }, []);
-
-    const oscillatorsData = [
-        { name: "Relative Strength Index (14)", value: realData.rsi14.toFixed(2), action: realData.rsi14 > 70 ? "Sell" : realData.rsi14 < 30 ? "Buy" : "Neutral" },
-        { name: "Current Price Delta", value: realData.momentum.toFixed(5), action: realData.momentum >= 0 ? "Buy" : "Sell" },
-    ];
-
-    const maData = [
-        { name: "Simple Moving Average (10)", value: realData.sma10.toFixed(5), action: realData.price > realData.sma10 ? "Buy" : "Sell" },
-        { name: "Simple Moving Average (20)", value: realData.sma20.toFixed(5), action: realData.price > realData.sma20 ? "Buy" : "Sell" },
-        { name: "Simple Moving Average (50)", value: realData.sma50.toFixed(5), action: realData.price > realData.sma50 ? "Buy" : "Sell" },
-    ];
-
     const tickerItems = Object.entries(tickerQuotes);
-    const fullTicker = [...tickerItems, ...tickerItems, ...tickerItems];
+    const fullTicker = tickerItems.length > 0 ? [...tickerItems, ...tickerItems, ...tickerItems] : [];
 
     return (
         <div className="min-h-screen flex flex-col relative z-0">
@@ -696,7 +601,7 @@ const App = () => {
                             <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] uppercase">
                                 DDY<span className="text-cyber-cyan">.AI</span>
                             </h1>
-                            <p className="text-[10px] font-mono text-cyber-purple font-bold tracking-[0.3em] uppercase mt-0.5">3-CORE PROCESSOR MATRIX</p>
+                            <p className="text-[10px] font-mono text-cyber-purple font-bold tracking-[0.3em] uppercase mt-0.5">STRICT-MODE PROCESSOR MATRIX</p>
                         </div>
                     </div>
                     
@@ -731,22 +636,22 @@ const App = () => {
 
                             <div className="xl:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
                                 {/* CORE 01 */}
-                                <div className={`cyber-panel p-4 flex flex-col justify-between border transition-all ${currentPrediction.direction.includes('BUY') ? 'border-cyber-cyan bg-cyber-cyan/5 shadow-[0_0_10px_rgba(0,240,255,0.2)]' : 'border-cyber-pink bg-cyber-pink/5 shadow-[0_0_10px_rgba(255,0,60,0.2)]'}`}>
+                                <div className={`cyber-panel p-4 flex flex-col justify-between border transition-all ${!isConnected ? 'disconnected-card opacity-80' : (currentPrediction.direction.includes('BUY') ? 'border-cyber-cyan bg-cyber-cyan/5 shadow-[0_0_10px_rgba(0,240,255,0.2)]' : (currentPrediction.direction.includes('SELL') ? 'border-cyber-pink bg-cyber-pink/5 shadow-[0_0_10px_rgba(255,0,60,0.2)]' : 'border-gray-500'))}`}>
                                     <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                        <span className="text-[10px] font-mono text-cyber-cyan bg-cyber-cyan/10 px-2 border border-cyber-cyan/30">EUR/USD</span>
+                                        <span className={`text-[10px] font-mono px-2 border ${isConnected ? 'text-cyber-cyan bg-cyber-cyan/10 border-cyber-cyan/30' : 'text-cyber-pink bg-cyber-pink/10 border-cyber-pink/30'}`}>{currentPrediction.pair}</span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className={`w-1.5 h-1.5 rounded-full ${twelveDataConnected ? 'bg-cyber-green animate-pulse' : 'bg-cyber-pink'}`}></span>
-                                            <span className="text-[8px] font-mono text-gray-400 font-bold uppercase">{twelveDataConnected ? "CONNECTED" : "DISCONNECTED"}</span>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse' : 'bg-cyber-pink'}`}></span>
+                                            <span className="text-[8px] font-mono text-gray-400 font-bold uppercase">{isConnected ? "CONNECTED" : "DISCONNECTED"}</span>
                                         </div>
                                     </div>
                                     <div className="my-3">
                                         <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block">CORE_01: LOCAL SIGNAL</span>
                                         <div className="flex justify-between items-end mt-1">
-                                            <h1 className="text-xl font-display font-black tracking-wider text-white uppercase">{currentPrediction.direction}</h1>
+                                            <h1 className={`text-xl font-display font-black tracking-wider uppercase ${!isConnected ? 'text-cyber-pink' : 'text-white'}`}>{currentPrediction.direction}</h1>
                                             <span className="text-sm font-mono text-cyber-yellow font-bold">{currentPrediction.confidence}%</span>
                                         </div>
                                     </div>
-                                    <div className="p-2 bg-black/40 border-l border-cyber-cyan text-[10px] font-mono text-gray-400 h-16 overflow-y-auto mb-2">{currentPrediction.logic}</div>
+                                    <div className={`p-2 bg-black/40 border-l text-[10px] font-mono h-16 overflow-y-auto mb-2 ${isConnected ? 'border-cyber-cyan text-gray-400' : 'border-cyber-pink text-cyber-pink font-bold'}`}>{currentPrediction.logic}</div>
                                     <div className="pt-2 border-t border-gray-800 flex justify-between text-[9px] font-mono text-gray-500 mt-auto">
                                         <span>EXPIRE_CLOCK</span>
                                         <span className="text-white font-bold">{formatTimeLeft(timeLeft)}</span>
@@ -754,22 +659,22 @@ const App = () => {
                                 </div>
 
                                 {/* CORE 02 */}
-                                <div className={`cyber-panel p-4 flex flex-col justify-between border transition-all ${!neuralConnected ? 'border-gray-800 opacity-60' : (neuralPrediction.direction.includes('BUY') ? 'border-cyber-cyan bg-cyber-cyan/5 shadow-[0_0_10px_rgba(0,240,255,0.2)]' : 'border-cyber-pink bg-cyber-pink/5 shadow-[0_0_10px_rgba(255,0,60,0.2)]')}`}>
+                                <div className={`cyber-panel p-4 flex flex-col justify-between border transition-all ${!isConnected ? 'disconnected-card opacity-80' : (neuralPrediction.direction.includes('BUY') ? 'border-cyber-cyan bg-cyber-cyan/5 shadow-[0_0_10px_rgba(0,240,255,0.2)]' : (neuralPrediction.direction.includes('SELL') ? 'border-cyber-pink bg-cyber-pink/5 shadow-[0_0_10px_rgba(255,0,60,0.2)]' : 'border-gray-500'))}`}>
                                     <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                        <span className="text-[10px] font-mono text-cyber-purple bg-cyber-purple/10 px-2 border border-cyber-purple/30">EUR/USD</span>
+                                        <span className={`text-[10px] font-mono px-2 border ${isConnected ? 'text-cyber-purple bg-cyber-purple/10 border-cyber-purple/30' : 'text-cyber-pink bg-cyber-pink/10 border-cyber-pink/30'}`}>{neuralPrediction.pair}</span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className={`w-1.5 h-1.5 rounded-full ${neuralConnected ? 'bg-cyber-green animate-pulse' : 'bg-cyber-pink'}`}></span>
-                                            <span className="text-[8px] font-mono text-gray-400 font-bold uppercase">{neuralConnected ? "CONNECTED" : "DISCONNECTED"}</span>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse' : 'bg-cyber-pink'}`}></span>
+                                            <span className="text-[8px] font-mono text-gray-400 font-bold uppercase">{isConnected ? "CONNECTED" : "DISCONNECTED"}</span>
                                         </div>
                                     </div>
                                     <div className="my-3">
                                         <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block">CORE_02: NEURAL ML</span>
                                         <div className="flex justify-between items-end mt-1">
-                                            <h1 className="text-xl font-display font-black tracking-wider text-white uppercase">{neuralPrediction.direction}</h1>
+                                            <h1 className={`text-xl font-display font-black tracking-wider uppercase ${!isConnected ? 'text-cyber-pink' : 'text-white'}`}>{neuralPrediction.direction}</h1>
                                             <span className="text-sm font-mono text-cyber-purple font-bold">{neuralPrediction.confidence}%</span>
                                         </div>
                                     </div>
-                                    <div className="p-2 bg-black/40 border-l border-cyber-purple text-[10px] font-mono text-gray-400 h-16 overflow-y-auto mb-2">{neuralPrediction.logic}</div>
+                                    <div className={`p-2 bg-black/40 border-l text-[10px] font-mono h-16 overflow-y-auto mb-2 ${isConnected ? 'border-cyber-purple text-gray-400' : 'border-cyber-pink text-cyber-pink font-bold'}`}>{neuralPrediction.logic}</div>
                                     <div className="pt-2 border-t border-gray-800 flex justify-between text-[9px] font-mono text-gray-500 mt-auto">
                                         <span>EXPIRE_CLOCK</span>
                                         <span className="text-white font-bold">{formatTimeLeft(timeLeft)}</span>
@@ -777,22 +682,22 @@ const App = () => {
                                 </div>
 
                                 {/* CORE 03: BINANCE FUTURES */}
-                                <div className="cyber-panel p-4 flex flex-col justify-between border border-cyber-purple bg-cyber-purple/5 shadow-[0_0_10px_rgba(189,0,255,0.15)]">
+                                <div className={`cyber-panel p-4 flex flex-col justify-between border transition-all ${!isConnected ? 'disconnected-card opacity-80' : 'border-cyber-yellow bg-cyber-yellow/5 shadow-[0_0_10px_rgba(252,238,10,0.15)]'}`}>
                                     <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                        <span className="text-[10px] font-mono text-cyber-yellow bg-cyber-yellow/10 px-2 border border-cyber-yellow/30">{cryptoPrediction.pair}</span>
+                                        <span className={`text-[10px] font-mono px-2 border ${isConnected ? 'text-cyber-yellow bg-cyber-yellow/10 border-cyber-yellow/30' : 'text-cyber-pink bg-cyber-pink/10 border-cyber-pink/30'}`}>{cryptoPrediction.pair}</span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-cyber-green animate-pulse"></span>
-                                            <span className="text-[8px] font-mono text-gray-400 font-bold uppercase">CONNECTED</span>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse' : 'bg-cyber-pink'}`}></span>
+                                            <span className="text-[8px] font-mono text-gray-400 font-bold uppercase">{isConnected ? "CONNECTED" : "DISCONNECTED"}</span>
                                         </div>
                                     </div>
                                     <div className="my-3">
                                         <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block">CORE_03: FUTURES MATRIX</span>
                                         <div className="flex justify-between items-end mt-1">
-                                            <h1 className="text-xl font-display font-black tracking-wider text-white uppercase">{cryptoPrediction.direction}</h1>
+                                            <h1 className={`text-xl font-display font-black tracking-wider uppercase ${!isConnected ? 'text-cyber-pink' : 'text-white'}`}>{cryptoPrediction.direction}</h1>
                                             <span className="text-sm font-mono text-cyber-green font-bold">{cryptoPrediction.confidence}%</span>
                                         </div>
                                     </div>
-                                    <div className="p-2 bg-black/40 text-[10px] font-mono text-gray-400 border-l border-cyber-yellow h-16 overflow-y-auto mb-2">{cryptoPrediction.logic}</div>
+                                    <div className={`p-2 bg-black/40 border-l text-[10px] font-mono h-16 overflow-y-auto mb-2 ${isConnected ? 'border-cyber-yellow text-gray-400' : 'border-cyber-pink text-cyber-pink font-bold'}`}>{cryptoPrediction.logic}</div>
                                     <div className="pt-2 border-t border-gray-800 flex justify-between text-[9px] font-mono text-gray-500 mt-auto">
                                         <span>1H_EXP_CLOCK</span>
                                         <span className="text-white font-bold">{formatTimeLeft(cryptoTimeLeft)}</span>
@@ -825,7 +730,7 @@ const App = () => {
                                 {terminalLogs.map(log => (
                                     <div key={log.id} className="mb-1 opacity-0 animate-fade-in">
                                         <span className="text-gray-500 mr-2">&gt;</span>
-                                        <span>{log.msg}</span>
+                                        <span className={log.msg.includes("[ERR]") ? "text-cyber-pink" : ""}>{log.msg}</span>
                                     </div>
                                 ))}
                                 <div className="animate-pulse text-cyber-cyan mt-2">_</div>
@@ -839,15 +744,15 @@ const App = () => {
                                 <div className="grid grid-cols-3 gap-2 text-center font-mono text-xs">
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">TOTAL EVAL</div>
-                                        <div className="text-sm font-bold text-white">{c1History.length + 5}</div>
+                                        <div className="text-sm font-bold text-white">{c1History.length}</div>
                                     </div>
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">TRUE POS</div>
-                                        <div className="text-sm font-bold text-cyber-green">{c1History.filter(x => x.state === "TRUE").length + 3}</div>
+                                        <div className="text-sm font-bold text-cyber-green">{c1History.filter(x => x.state === "TRUE").length}</div>
                                     </div>
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">ACCURACY</div>
-                                        <div className="text-sm font-bold text-cyber-yellow">66%</div>
+                                        <div className="text-sm font-bold text-cyber-yellow">{c1History.length > 0 ? Math.round((c1History.filter(x => x.state === "TRUE").length / c1History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
@@ -858,15 +763,15 @@ const App = () => {
                                 <div className="grid grid-cols-3 gap-2 text-center font-mono text-xs">
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">TOTAL RUNS</div>
-                                        <div className="text-sm font-bold text-white">{c2History.length + 12}</div>
+                                        <div className="text-sm font-bold text-white">{c2History.length}</div>
                                     </div>
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">TRUE PRED</div>
-                                        <div className="text-sm font-bold text-cyber-green">{c2History.filter(x => x.state === "TRUE").length + 10}</div>
+                                        <div className="text-sm font-bold text-cyber-green">{c2History.filter(x => x.state === "TRUE").length}</div>
                                     </div>
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">ACCURACY</div>
-                                        <div className="text-sm font-bold text-cyber-green">83%</div>
+                                        <div className="text-sm font-bold text-cyber-green">{c2History.length > 0 ? Math.round((c2History.filter(x => x.state === "TRUE").length / c2History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
@@ -877,15 +782,15 @@ const App = () => {
                                 <div className="grid grid-cols-3 gap-2 text-center font-mono text-xs mb-3">
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">DERIVATIVES TOTAL</div>
-                                        <div className="text-sm font-bold text-white">{c3History.length + 8}</div>
+                                        <div className="text-sm font-bold text-white">{c3History.length}</div>
                                     </div>
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">VALID BREAKOUTS</div>
-                                        <div className="text-sm font-bold text-cyber-green">{c3History.filter(x => x.result === "TRUE").length + 6}</div>
+                                        <div className="text-sm font-bold text-cyber-green">{c3History.filter(x => x.result === "TRUE").length}</div>
                                     </div>
                                     <div className="p-2 bg-black/60 rounded">
                                         <div className="text-gray-500 text-[9px]">HIT RATE</div>
-                                        <div className="text-sm font-bold text-cyber-green">75%</div>
+                                        <div className="text-sm font-bold text-cyber-green">{c3History.length > 0 ? Math.round((c3History.filter(x => x.result === "TRUE").length / c3History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
