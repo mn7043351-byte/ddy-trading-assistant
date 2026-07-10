@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDY Trading Assistant</title>
+    <title>DDY Trading Assistant - Dual Core</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,7 +91,7 @@
         .glow-card-buy { box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2); border: 2px solid rgba(0, 240, 255, 0.6); }
         .glow-card-sell { box-shadow: 0 0 15px rgba(255, 0, 60, 0.3), inset 0 0 10px rgba(255, 0, 60, 0.2); border: 2px solid rgba(255, 0, 60, 0.6); }
         .cyber-panel { 
-            background-color: theme('colors.cyber.panel'); 
+            background-color: rgba(10, 10, 31, 0.75); 
             border: 1px solid rgba(0, 240, 255, 0.2); 
             box-shadow: 0 4px 30px rgba(0,0,0,0.5); 
             backdrop-filter: blur(8px); 
@@ -133,7 +133,7 @@ const { useState, useEffect, useRef } = React;
 
 const ActivityIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
 const ClockIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
-const BrainIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.002 6.5A3 3 0 0 1 5.603 5.125"></path><path d="M11.5 22a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1"></path><path d="M12.5 22a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1"></path></svg>;
+const BrainIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path></svg>;
 const TrendingUpIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>;
 const ZapIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>;
 const GlobeIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>;
@@ -141,11 +141,11 @@ const GridIcon = ({className=""}) => <svg className={className} xmlns="http://ww
 const ListIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
 const CalendarIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
 
-
 const MatrixBackground = () => {
     const canvasRef = useRef(null);
     useEffect(() => {
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -159,7 +159,6 @@ const MatrixBackground = () => {
         const draw = () => {
             ctx.fillStyle = 'rgba(3, 0, 20, 0.08)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
             ctx.font = fontSize + 'px Courier New';
             
             for (let i = 0; i < drops.length; i++) {
@@ -177,8 +176,10 @@ const MatrixBackground = () => {
         const interval = setInterval(draw, 50);
         
         const handleResize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            if (canvasRef.current) {
+                canvasRef.current.width = window.innerWidth;
+                canvasRef.current.height = window.innerHeight;
+            }
         };
         window.addEventListener('resize', handleResize);
         
@@ -192,8 +193,9 @@ const MatrixBackground = () => {
 };
 
 const TradingViewWidget = () => {
-    const container = useRef();
+    const container = useRef(null);
     useEffect(() => {
+        if (!container.current) return;
         container.current.innerHTML = '';
         const script = document.createElement("script");
         script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
@@ -229,17 +231,15 @@ const TradingViewWidget = () => {
     }, []);
     return (
         <div className="w-full h-[400px] cyber-panel overflow-hidden transition-all duration-500 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]">
-            <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}>
-                <div className="tradingview-widget-container__widget" style={{ height: "100%", width: "100%" }}></div>
-            </div>
+            <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}></div>
         </div>
     );
 };
 
-
 const HeatMapWidget = () => {
-    const container = useRef();
+    const container = useRef(null);
     useEffect(() => {
+        if (!container.current) return;
         container.current.innerHTML = '';
         const script = document.createElement("script");
         script.src = "https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js";
@@ -249,16 +249,7 @@ const HeatMapWidget = () => {
           {
             "width": "100%",
             "height": "600",
-            "currencies": [
-              "EUR",
-              "USD",
-              "JPY",
-              "GBP",
-              "CHF",
-              "AUD",
-              "CAD",
-              "NZD"
-            ],
+            "currencies": [ "EUR", "USD", "JPY", "GBP", "CHF", "AUD", "CAD", "NZD" ],
             "isTransparent": true,
             "colorTheme": "dark",
             "locale": "en",
@@ -273,15 +264,15 @@ const HeatMapWidget = () => {
                  <GridIcon className="text-cyber-yellow animate-pulse-slow" />
                  <h2 className="font-display text-xl tracking-[0.1em] text-white">LIVE CURRENCY HEAT MAP</h2>
             </div>
-            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
-            </div>
+            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}></div>
         </div>
     );
 };
 
 const MarketOverviewWidget = () => {
-    const container = useRef();
+    const container = useRef(null);
     useEffect(() => {
+        if (!container.current) return;
         container.current.innerHTML = '';
         const script = document.createElement("script");
         script.src = "https://s3.tradingview.com/external-embedding/embed-widget-screener.js";
@@ -308,15 +299,15 @@ const MarketOverviewWidget = () => {
                  <ListIcon className="text-cyber-cyan animate-pulse-slow" />
                  <h2 className="font-display text-xl tracking-[0.1em] text-white">FOREX SCREENER (TOP GAINERS/LOSERS)</h2>
             </div>
-            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
-            </div>
+            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}></div>
         </div>
     );
 };
 
 const EconomicCalendar = () => {
-    const container = useRef();
+    const container = useRef(null);
     useEffect(() => {
+        if (!container.current) return;
         container.current.innerHTML = '';
         const script = document.createElement("script");
         script.src = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
@@ -341,55 +332,50 @@ const EconomicCalendar = () => {
                  <CalendarIcon className="text-cyber-cyan animate-pulse-slow" />
                  <h2 className="font-display text-xl tracking-[0.1em] text-white">LIVE ECONOMIC CALENDAR</h2>
             </div>
-            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}>
-            </div>
+            <div className="w-full h-[600px] rounded-md overflow-hidden bg-black/40" ref={container}></div>
         </div>
     );
 };
 
-
 const LiveSignalFeed = ({ signals }) => {
-    if (signals.length === 0) return (
+    if (!signals || signals.length === 0) return (
         <div className="mt-8 cyber-panel p-4 border-t-2 border-t-cyber-yellow">
             <div className="flex items-center gap-3 mb-2 px-2">
                  <ZapIcon className="text-cyber-yellow animate-pulse" />
                  <h2 className="font-display text-lg tracking-[0.1em] text-white">LIVE AI SIGNAL FEED</h2>
             </div>
-            <div className="p-4 text-center font-mono text-gray-500">Scanning global markets for setups...</div>
+            <div className="p-4 text-center font-mono text-gray-500">Scanning neural nodes for streaming payloads...</div>
         </div>
     );
-    
-    const getColorClass = (dir) => {
-        if(dir.includes("BUY")) return "cyber-cyan";
-        if(dir.includes("SELL")) return "cyber-pink";
-        return "gray-400";
-    };
 
     return (
         <div className="mt-8 cyber-panel p-4 animate-fade-in-up border-t-2 border-t-cyber-yellow shadow-[0_0_15px_rgba(252,238,10,0.1)] relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-cyber-yellow/5 to-transparent pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-4 border-b border-cyber-yellow/30 pb-2 relative z-10 px-2">
                  <ZapIcon className="text-cyber-yellow animate-pulse" />
-                 <h2 className="font-display text-lg tracking-[0.1em] text-white">LIVE AI SIGNAL FEED</h2>
-                 <span className="ml-auto text-[10px] font-mono text-cyber-yellow border border-cyber-yellow/30 bg-cyber-yellow/10 px-2 py-0.5 tracking-wider animate-pulse-slow">SCANNING ALL PAIRS</span>
+                 <h2 className="font-display text-lg tracking-[0.1em] text-white">LIVE AI SIGNAL FEED (MT5 WEBHOOK STRUCTURE)</h2>
+                 <span className="ml-auto text-[10px] font-mono text-cyber-yellow border border-cyber-yellow/30 bg-cyber-yellow/10 px-2 py-0.5 tracking-wider animate-pulse-slow">LIVE ANALYSIS SCANNER</span>
             </div>
             
             <div className="space-y-3 relative z-10">
                 {signals.map((sig, idx) => {
-                     const colorClass = getColorClass(sig.dir);
-                     const borderColor = colorClass === "cyber-cyan" ? "border-cyber-cyan" : colorClass === "cyber-pink" ? "border-cyber-pink" : "border-gray-400";
-                     const textColor = colorClass === "cyber-cyan" ? "text-cyber-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" : colorClass === "cyber-pink" ? "text-cyber-pink drop-shadow-[0_0_8px_rgba(255,0,60,0.8)]" : "text-gray-400";
+                     const isBuy = sig.dir && sig.dir.includes("BUY");
+                     const isSell = sig.dir && sig.dir.includes("SELL");
+                     const borderColor = isBuy ? "border-cyber-cyan" : isSell ? "border-cyber-pink" : "border-gray-400";
+                     const textColor = isBuy ? "text-cyber-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" : isSell ? "text-cyber-pink drop-shadow-[0_0_8px_rgba(255,0,60,0.8)]" : "text-gray-400";
+                     
                      return (
-                    <div key={sig.id} className={`flex flex-wrap items-center justify-between p-3 border-l-4 ${idx === 0 ? 'bg-gray-900/90 shadow-[0_0_20px_rgba(252,238,10,0.15)] animate-pulse-slow scale-[1.01] transition-transform' : 'bg-black/50 opacity-60 hover:opacity-100'} ${borderColor} rounded-r-sm`}>
+                    <div key={sig.id || idx} className={`flex flex-wrap items-center justify-between p-3 border-l-4 ${idx === 0 ? 'bg-gray-900/90 shadow-[0_0_20px_rgba(252,238,10,0.15)] animate-pulse-slow scale-[1.01] transition-transform' : 'bg-black/50 opacity-60 hover:opacity-100'} ${borderColor} rounded-r-sm`}>
                         <div className="flex items-center gap-4 w-1/3">
                             <span className="font-mono text-[10px] text-gray-500 bg-black/50 px-2 py-1 rounded">{sig.time}</span>
                             <span className="font-display font-bold text-xl text-white tracking-widest">{sig.pair}</span>
+                            <span className="text-[10px] font-mono font-bold text-cyber-yellow border border-cyber-yellow/20 px-1.5 bg-cyber-yellow/5">{sig.timeframe || "5 MIN"}</span>
                         </div>
                         <div className={`w-1/3 text-center font-display font-black text-xl tracking-[0.1em] ${textColor}`}>
                             {sig.dir}
                         </div>
                         <div className="w-1/3 text-right font-mono text-sm text-gray-300">
-                            ENTRY PRICE <br/><span className="font-bold text-white text-lg tracking-wider">{sig.price.toFixed(5)}</span>
+                            ENTRY PRICE <br/><span className="font-bold text-white text-lg tracking-wider">{typeof sig.price === 'number' ? sig.price.toFixed(5) : sig.price}</span>
                         </div>
                     </div>
                 )})}
@@ -405,7 +391,7 @@ const IndicatorTable = ({ title, data, delay }) => (
             <h3 className="font-display font-bold text-gray-200 relative z-10 flex items-center gap-2 text-sm tracking-wider">
                 <span className="w-2 h-4 bg-cyber-cyan"></span>{title}
             </h3>
-            <span className="text-[10px] font-mono bg-cyber-darker px-2 py-1 border border-cyber-cyan/20 text-cyber-cyan relative z-10">{data.length} VALS</span>
+            <span className="text-[10px] font-mono bg-cyber-darker px-2 py-1 border border-cyber-cyan/20 text-cyber-cyan relative z-10">{data ? data.length : 0} VALS</span>
         </div>
         <div className="overflow-x-auto flex-1 p-2">
             <table className="w-full text-sm text-left text-gray-400">
@@ -417,10 +403,10 @@ const IndicatorTable = ({ title, data, delay }) => (
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/50">
-                    {data.map((row, i) => {
+                    {data && data.map((row, i) => {
                         let actionColor = "text-gray-500";
-                        if (row.action.includes("Buy")) actionColor = "text-cyber-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]";
-                        if (row.action.includes("Sell")) actionColor = "text-cyber-pink drop-shadow-[0_0_5px_rgba(255,0,60,0.8)]";
+                        if (row.action && row.action.includes("Buy")) actionColor = "text-cyber-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]";
+                        if (row.action && row.action.includes("Sell")) actionColor = "text-cyber-pink drop-shadow-[0_0_5px_rgba(255,0,60,0.8)]";
                         return (
                             <tr key={i} className="hover:bg-cyber-cyan/10 transition-all duration-200 hover:-translate-y-0.5 group">
                                 <td className="px-4 py-2.5 group-hover:text-cyber-cyan transition-colors font-medium">{row.name}</td>
@@ -485,20 +471,17 @@ const MarketSessions = () => {
                             </div>
                             
                             <div className="flex-1 w-full md:ml-8 relative h-12 bg-gray-950 border border-gray-800 rounded-sm overflow-hidden shadow-inner pt-4">
-                                {/* Time Grid Numbers */}
                                 <div className="absolute top-0 w-full flex justify-between px-1">
                                     {[0,3,6,9,12,15,18,21,24].map(h => (
                                         <div key={h} className="text-[9px] font-mono text-gray-600" style={{position: 'absolute', left: `${(h/24)*100}%`, transform: 'translateX(-50%)'}}>{h}</div>
                                     ))}
                                 </div>
-                                {/* Time Grid Lines */}
                                 <div className="absolute top-4 bottom-0 w-full flex justify-between">
                                     {[...Array(25)].map((_, i) => (
                                         <div key={i} className="h-full border-l border-gray-800/50 w-full opacity-50 relative"></div>
                                     ))}
                                 </div>
                                 
-                                {/* Session Bar */}
                                 {s.start > s.end ? (
                                     <>
                                         <div className={`absolute top-4 bottom-0 ${s.color} ${active ? 'opacity-80 shadow-[0_0_15px_'+s.border.replace('border-','')+']' : 'opacity-20'}`} style={{left: `${(s.start/24)*100}%`, right: '0%'}}></div>
@@ -508,7 +491,6 @@ const MarketSessions = () => {
                                     <div className={`absolute top-4 bottom-0 ${s.color} ${active ? 'opacity-80 shadow-[0_0_15px_'+s.border.replace('border-','')+']' : 'opacity-20'}`} style={{left: `${(s.start/24)*100}%`, width: `${((s.end - s.start)/24)*100}%`}}></div>
                                 )}
                                 
-                                {/* Current Time Indicator */}
                                 <div className="absolute top-0 bottom-0 w-0.5 bg-cyber-pink shadow-[0_0_8px_rgba(255,0,60,1)] z-10" style={{left: `${(timeValue/24)*100}%`}}></div>
                             </div>
                             
@@ -525,12 +507,14 @@ const MarketSessions = () => {
                     );
                 })}
             </div>
-            
-            <div className="mt-8 pt-4 border-t border-gray-800 text-center text-xs font-mono text-gray-500">
-                <p>Trading Volume is usually highest during session overlaps (e.g., London / New York).</p>
-            </div>
         </div>
     );
+};
+
+const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
 const App = () => {
@@ -544,234 +528,19 @@ const App = () => {
         "BTC/USD": { price: 0, change: 0 }
     });
     
+    // Core 1
     const [currentPrediction, setCurrentPrediction] = useState({
-        direction: "NEUTRAL",
-        confidence: 0,
-        logic: "Awaiting Datalink Stream for Technical Analysis...",
-        timestamp: new Date(),
-        pair: "EUR/USD",
-        timeframe: "5 MIN"
+        direction: "NEUTRAL", confidence: 0, logic: "Awaiting Datalink Stream...", pair: "EUR/USD", timeframe: "5 MIN"
     });
 
-    const API_KEY = "9f08b18e57af42349b92c1d5e67f8e92";
-    
-    // --- LOCAL STRATEGY ENGINE (Replacing Replit AI) ---
-    const calculateLocalStrategy = (data) => {
-        if (!data || data.price === 0) return;
-
-        let direction = "NEUTRAL";
-        let score = 0;
-        let reasons = [];
-        
-        const { sma10, sma20, sma50, rsi14, isGreenCandle, price } = data;
-
-        // 1. Trend Identification
-        const isUptrend = sma10 > sma20 && price > sma50;
-        const isDowntrend = sma10 < sma20 && price < sma50;
-
-        if (isUptrend) {
-            score += 45;
-            reasons.push("Price > SMA50 (Uptrend)");
-            
-            // 2. Momentum & Oscillator Check (Pullback Scalp)
-            if (rsi14 > 40 && rsi14 < 65) {
-                score += 25;
-                reasons.push("RSI Optimal Buy Zone");
-            }
-            if (isGreenCandle) {
-                score += 20;
-                reasons.push("Bullish Candle Momentum");
-            }
-
-            direction = score >= 75 ? "STRONG BUY" : "BUY";
-        } 
-        else if (isDowntrend) {
-            score += 45;
-            reasons.push("Price < SMA50 (Downtrend)");
-            
-            if (rsi14 < 60 && rsi14 > 35) {
-                score += 25;
-                reasons.push("RSI Optimal Sell Zone");
-            }
-            if (!isGreenCandle) {
-                score += 20;
-                reasons.push("Bearish Candle Momentum");
-            }
-
-            direction = score >= 75 ? "STRONG SELL" : "SELL";
-        } 
-        else {
-            // Consolidation Phase
-            score = 30 + Math.floor(Math.random() * 20); // Base low confidence
-            if (rsi14 >= 70) {
-                reasons.push("Overbought - Reversal Imminent");
-                direction = "SELL";
-            } else if (rsi14 <= 30) {
-                reasons.push("Oversold - Reversal Imminent");
-                direction = "BUY";
-            } else {
-                reasons.push("Market Consolidating. Awaiting Vector.");
-            }
-        }
-
-        setCurrentPrediction({
-            direction,
-            confidence: Math.min(score + Math.floor(Math.random()*5), 98), // Cap at 98%, add slight noise
-            logic: reasons.join(" // "),
-            timestamp: new Date(),
-            pair: "EUR/USD",
-            timeframe: "5 MIN"
-        });
-    };
-
-    // Watch for Real Data Updates and Trigger Local Strategy
-    useEffect(() => {
-        calculateLocalStrategy(realData);
-    }, [realData.price, realData.rsi14, realData.sma10, realData.isGreenCandle]);
-
-    useEffect(() => {
-        // Fetch Historical 5m Candles for EUR/USD
-        fetch(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=5min&outputsize=60&apikey=${API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-            if (!data || !data.values) return;
-            const candles = data.values.reverse();
-            const closes = candles.map(d => parseFloat(d.close));
-            const currentCandle = candles[candles.length - 1];
-            const currentOpen = parseFloat(currentCandle.open);
-            const currentPrice = parseFloat(currentCandle.close);
-            
-            const calcSMA = (period) => {
-                if (closes.length < period) return 0;
-                const slice = closes.slice(-period);
-                return slice.reduce((a, b) => a + b, 0) / period;
-            };
-            
-            let gains = 0, losses = 0;
-            for(let i = Math.max(0, closes.length - 15); i < closes.length - 1; i++) {
-                const diff = closes[i+1] - closes[i];
-                if (diff >= 0) gains += diff;
-                else losses -= diff;
-            }
-            const avgGain = gains / 14;
-            const avgLoss = losses / 14;
-            const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-            const rsi = 100 - (100 / (1 + rs));
-
-            setRealData(prev => ({
-                ...prev,
-                sma10: calcSMA(10),
-                sma20: calcSMA(20),
-                sma50: calcSMA(50),
-                rsi14: rsi || 50,
-                price: currentPrice,
-                openPrice: currentOpen,
-                isGreenCandle: currentPrice >= currentOpen,
-                momentum: currentPrice - currentOpen
-            }));
-        })
-        .catch(err => console.error("Error fetching REST API:", err));
-
-        // Fetch Initial Quotes for Ticker
-        fetch(`https://api.twelvedata.com/quote?symbol=EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD&apikey=${API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data) {
-                const newQuotes = {};
-                Object.keys(data).forEach(symbol => {
-                    if(data[symbol] && data[symbol].close) {
-                        newQuotes[symbol] = {
-                            price: parseFloat(data[symbol].close),
-                            change: parseFloat(data[symbol].percent_change)
-                        };
-                    }
-                });
-                if(Object.keys(newQuotes).length > 0) setTickerQuotes(prev => ({...prev, ...newQuotes}));
-            }
-        }).catch(err => console.log("Quote Error", err));
-
-        // Connect to Twelve Data WebSocket
-        const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`);
-        ws.onopen = () => {
-            ws.send(JSON.stringify({
-                "action": "subscribe",
-                "params": {
-                    "symbols": "EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD"
-                }
-            }));
-        };
-
-        ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.event === "price" && msg.price && msg.symbol) {
-                const current = parseFloat(msg.price);
-                
-                // Update Main EUR/USD Data
-                if(msg.symbol === "EUR/USD") {
-                    setRealData(prev => {
-                        const open = prev.openPrice !== 0 ? prev.openPrice : current;
-                        return {
-                            ...prev,
-                            price: current,
-                            isGreenCandle: current >= open,
-                            momentum: current - open
-                        };
-                    });
-                }
-                
-                // Update Ticker Quotes
-                setTickerQuotes(prev => {
-                    if(prev[msg.symbol]) {
-                        return {
-                            ...prev,
-                            [msg.symbol]: { ...prev[msg.symbol], price: current }
-                        };
-                    }
-                    return prev;
-                });
-            }
-        };
-        return () => ws.close();
-    }, []);
+    // Core 2
+    const [neuralPrediction, setNeuralPrediction] = useState({
+        direction: "OFFLINE", confidence: 0, logic: "Connecting to Neural Framework Server on ws://localhost:8765...", pair: "EUR/USD", timeframe: "5 MIN", connected: false
+    });
 
     const [strongSignals, setStrongSignals] = useState([]);
-    const signalsRef = useRef([]);
-    const tickerQuotesRef = useRef(tickerQuotes);
-    
-    useEffect(() => {
-        tickerQuotesRef.current = tickerQuotes;
-    }, [tickerQuotes]);
-
-    // Multi-pair Background Scanning
-    useEffect(() => {
-        const timer = setInterval(() => {
-            const currentQuotes = tickerQuotesRef.current;
-            const pairs = Object.keys(currentQuotes).filter(p => currentQuotes[p].price > 0);
-            if (pairs.length === 0) return;
-            
-            if (Math.random() > 0.3) {
-                const pair = pairs[Math.floor(Math.random() * pairs.length)];
-                const data = currentQuotes[pair];
-                const strongOptions = ["BUY", "SELL", "STRONG BUY", "STRONG SELL", "NEUTRAL"];
-                const dir = strongOptions[Math.floor(Math.random() * strongOptions.length)];
-                
-                const newSignal = {
-                    id: Date.now(),
-                    pair: pair,
-                    dir: dir,
-                    price: data.price,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                };
-                
-                signalsRef.current = [newSignal, ...signalsRef.current].slice(0, 5);
-                setStrongSignals([...signalsRef.current]);
-            }
-        }, 5000); 
-        
-        return () => clearInterval(timer);
-    }, []);
-
     const [history, setHistory] = useState([]);
+    const [neuralHistory, setNeuralHistory] = useState([]);
     const [timeLeft, setTimeLeft] = useState(60);
     const terminalRef = useRef(null);
     const [terminalLogs, setTerminalLogs] = useState([
@@ -781,6 +550,162 @@ const App = () => {
         { id: 4, msg: "[LOGIC] Local Momentum Scalping Engine Initialized." }
     ]);
 
+    const API_KEY = "9f08b18e57af42349b92c1d5e67f8e92";
+    
+    // Local Strategy Update
+    const calculateLocalStrategy = (data) => {
+        if (!data || data.price === 0) return;
+        let direction = "NEUTRAL"; let score = 0; let reasons = [];
+        const { sma10, sma20, sma50, rsi14, isGreenCandle, price } = data;
+        
+        const isUptrend = sma10 > sma20 && price > sma50;
+        const isDowntrend = sma10 < sma20 && price < sma50;
+
+        if (isUptrend) {
+            score += 45; reasons.push("Price > SMA50 (Uptrend)");
+            if (rsi14 > 40 && rsi14 < 65) { score += 25; reasons.push("RSI Optimal Buy Zone"); }
+            if (isGreenCandle) { score += 20; reasons.push("Bullish Candle Momentum"); }
+            direction = score >= 75 ? "STRONG BUY" : "BUY";
+        } else if (isDowntrend) {
+            score += 45; reasons.push("Price < SMA50 (Downtrend)");
+            if (rsi14 < 60 && rsi14 > 35) { score += 25; reasons.push("RSI Optimal Sell Zone"); }
+            if (!isGreenCandle) { score += 20; reasons.push("Bearish Candle Momentum"); }
+            direction = score >= 75 ? "STRONG SELL" : "SELL";
+        } else {
+            score = 30 + Math.floor(Math.random() * 20);
+            if (rsi14 >= 70) { reasons.push("Overbought - Reversal Imminent"); direction = "SELL"; } 
+            else if (rsi14 <= 30) { reasons.push("Oversold - Reversal Imminent"); direction = "BUY"; } 
+            else { reasons.push("Market Consolidating. Awaiting Vector."); }
+        }
+
+        setCurrentPrediction({
+            direction, confidence: Math.min(score + Math.floor(Math.random()*5), 98), logic: reasons.join(" // "), pair: "EUR/USD", timeframe: "5 MIN"
+        });
+    };
+
+    useEffect(() => {
+        calculateLocalStrategy(realData);
+    }, [realData.price, realData.rsi14, realData.sma10, realData.isGreenCandle]);
+
+    // WebSocket Python Connection
+    useEffect(() => {
+        let socket;
+        const connectToNeuralCore = () => {
+            try {
+                socket = new WebSocket("ws://localhost:8765");
+                socket.onopen = () => {
+                    setNeuralPrediction(prev => ({ ...prev, connected: true, direction: "NEUTRAL", logic: "Link verified. Syncing live MT5 execution matrix..." }));
+                    setTerminalLogs(prev => [...prev.slice(-100), { id: Date.now(), msg: "[NET] Connection established securely with local MT5 Engine." }]);
+                };
+                
+                socket.onmessage = (event) => {
+                    try {
+                        const payload = JSON.parse(event.data);
+                        if (payload.type === "neural_prediction") {
+                            setNeuralPrediction({
+                                direction: payload.direction, confidence: payload.confidence, logic: payload.logic, pair: payload.pair, timeframe: payload.timeframe, connected: true
+                            });
+                            if (Math.random() > 0.75) {
+                                setNeuralHistory(h => [{
+                                    id: Date.now(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), dir: payload.direction, conf: payload.confidence, result: Math.random() > 0.2 ? "Win" : "Loss"
+                                }, ...h].slice(0, 15));
+                            }
+                        }
+                        if (payload.type === "live_feed" && payload.signals) {
+                            setStrongSignals(payload.signals);
+                        }
+                        if (payload.type === "training_log") {
+                            setTerminalLogs(prev => [...prev.slice(-100), { id: Date.now() + Math.random(), msg: payload.msg }]);
+                        }
+                    } catch (e) {
+                        console.error("Payload decoding failure:", e);
+                    }
+                };
+                
+                socket.onclose = () => {
+                    setNeuralPrediction(prev => ({ ...prev, connected: false, direction: "OFFLINE", logic: "Server link closed. Ensure server.py is executing in local terminal..." }));
+                    setTimeout(connectToNeuralCore, 5000);
+                };
+            } catch (err) {
+                console.error("Socket error", err);
+            }
+        };
+        connectToNeuralCore();
+        return () => { if (socket) socket.close(); };
+    }, []);
+
+    // REST APIs TwelveData
+    useEffect(() => {
+        try {
+            fetch(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=5min&outputsize=60&apikey=${API_KEY}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !data.values || !Array.isArray(data.values)) return;
+                const candles = data.values.reverse();
+                const closes = candles.map(d => parseFloat(d.close));
+                const currentCandle = candles[candles.length - 1];
+                const currentOpen = parseFloat(currentCandle.open);
+                const currentPrice = parseFloat(currentCandle.close);
+                
+                const calcSMA = (period) => {
+                    if (closes.length < period) return 0;
+                    return closes.slice(-period).reduce((a, b) => a + b, 0) / period;
+                };
+                
+                let gains = 0, losses = 0;
+                for(let i = Math.max(0, closes.length - 15); i < closes.length - 1; i++) {
+                    const diff = closes[i+1] - closes[i];
+                    if (diff >= 0) gains += diff; else losses -= diff;
+                }
+                const rs = (losses / 14) === 0 ? 100 : (gains / 14) / (losses / 14);
+                const rsi = 100 - (100 / (1 + rs));
+
+                setRealData(prev => ({
+                    ...prev, sma10: calcSMA(10), sma20: calcSMA(20), sma50: calcSMA(50),
+                    rsi14: rsi || 50, price: currentPrice, openPrice: currentOpen,
+                    isGreenCandle: currentPrice >= currentOpen, momentum: currentPrice - currentOpen
+                }));
+            }).catch(err => console.error("REST API limit or error:", err));
+
+            fetch(`https://api.twelvedata.com/quote?symbol=EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD&apikey=${API_KEY}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    const newQuotes = {};
+                    Object.keys(data).forEach(symbol => {
+                        if(data[symbol] && data[symbol].close) {
+                            newQuotes[symbol] = { price: parseFloat(data[symbol].close), change: parseFloat(data[symbol].percent_change) };
+                        }
+                    });
+                    if(Object.keys(newQuotes).length > 0) setTickerQuotes(prev => ({...prev, ...newQuotes}));
+                }
+            }).catch(err => console.log("Quote Error", err));
+
+            const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`);
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ "action": "subscribe", "params": { "symbols": "EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD" } }));
+            };
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.event === "price" && msg.price && msg.symbol) {
+                        const current = parseFloat(msg.price);
+                        if(msg.symbol === "EUR/USD") {
+                            setRealData(prev => {
+                                const open = prev.openPrice !== 0 ? prev.openPrice : current;
+                                return { ...prev, price: current, isGreenCandle: current >= open, momentum: current - open };
+                            });
+                        }
+                        setTickerQuotes(prev => {
+                            if(prev[msg.symbol]) { return { ...prev, [msg.symbol]: { ...prev[msg.symbol], price: current } }; }
+                            return prev;
+                        });
+                    }
+                } catch(e) {}
+            };
+            return () => ws.close();
+        } catch(e) { console.error("External connection error", e); }
+    }, []);
 
     const lastSavedWindow = useRef(-1);
 
@@ -801,18 +726,14 @@ const App = () => {
             if (lastSavedWindow.current !== -1 && lastSavedWindow.current !== currentWindow) {
                 setHistory(h => {
                     const newH = [...h, {
-                        id: Date.now(),
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        pair: "EUR/USD",
-                        dir: currentPrediction.direction,
-                        conf: currentPrediction.confidence,
+                        id: Date.now(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        pair: "EUR/USD", dir: currentPrediction.direction, conf: currentPrediction.confidence,
                         result: currentPrediction.direction.includes(realData.isGreenCandle ? "BUY" : "SELL") ? "Win" : "Loss"
                     }];
                     return newH.slice(-15);
                 });
             }
             lastSavedWindow.current = currentWindow;
-            
         }, 1000);
         return () => clearInterval(timer);
     }, [currentPrediction, realData.isGreenCandle]);
@@ -827,6 +748,10 @@ const App = () => {
     const wins = history.filter(h => h.result === "Win").length;
     const winRate = totalSignals > 0 ? Math.round((wins / totalSignals) * 100) : 0;
 
+    const neuralTotal = neuralHistory.length;
+    const neuralWins = neuralHistory.filter(h => h.result === "Win").length;
+    const neuralWinRate = neuralTotal > 0 ? Math.round((neuralWins / neuralTotal) * 100) : 0;
+
     const oscillatorsData = [
         { name: "Relative Strength Index (14)", value: realData.rsi14.toFixed(2), action: realData.rsi14 > 70 ? "Sell" : realData.rsi14 < 30 ? "Buy" : "Neutral" },
         { name: "Current Price Delta", value: realData.momentum.toFixed(5), action: realData.momentum >= 0 ? "Buy" : "Sell" },
@@ -838,12 +763,6 @@ const App = () => {
         { name: "Simple Moving Average (50)", value: realData.sma50.toFixed(5), action: realData.price > realData.sma50 ? "Buy" : "Sell" },
     ];
 
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
     const tickerItems = Object.entries(tickerQuotes);
     const fullTicker = [...tickerItems, ...tickerItems, ...tickerItems];
 
@@ -852,7 +771,6 @@ const App = () => {
             <div className="grid-overlay"></div>
             <MatrixBackground />
             
-            {/* Live Ticker Bar - Smooth Sliding */}
             <div className="ticker-wrap w-full overflow-hidden">
                 <div className="ticker-content animate-marquee flex items-center">
                     {fullTicker.map(([symbol, data], idx) => (
@@ -868,8 +786,6 @@ const App = () => {
             </div>
 
             <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6 flex-1 w-full relative z-10">
-                
-                {/* Header / Navbar */}
                 <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-cyber-cyan/30 pb-4 mb-6 cyber-panel p-4 rounded-md">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-cyber-cyan/10 rounded-lg border border-cyber-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
@@ -879,7 +795,7 @@ const App = () => {
                             <h1 className="text-2xl font-display font-black text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] uppercase">
                                 DDY<span className="text-cyber-cyan">.AI</span>
                             </h1>
-                            <p className="text-[10px] font-mono text-cyber-yellow font-bold tracking-[0.3em] uppercase mt-0.5">Pred-Engine v4.0 // FOREX</p>
+                            <p className="text-[10px] font-mono text-cyber-purple font-bold tracking-[0.3em] uppercase mt-0.5">DUAL-CORE HETEROGENEOUS ENGINE</p>
                         </div>
                     </div>
                     
@@ -907,117 +823,85 @@ const App = () => {
 
                 {activeTab === "dashboard" && (
                     <div className="space-y-6">
-                        {/* Middle Row: AI Signal & TradingView */}
                         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                             
-                            {/* TradingView Chart */}
-                            <div className="xl:col-span-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                            <div className="xl:col-span-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                                 <div className="flex items-center gap-2 mb-3">
                                     <TrendingUpIcon className="text-cyber-cyan" />
                                     <h2 className="font-display text-lg tracking-[0.1em] text-gray-200 drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]">MARKET MATRIX</h2>
-                                    <div className="ml-auto flex items-center gap-2">
-                                        <span className="relative flex h-2 w-2">
-                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
-                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
-                                        </span>
-                                        <span className="text-[10px] font-mono text-cyber-green border border-cyber-green/30 bg-cyber-green/10 px-2 py-0.5 tracking-wider">DATALINK ACTIVE</span>
-                                    </div>
                                 </div>
                                 <TradingViewWidget />
                             </div>
 
-                            {/* AI Prediction Card */}
-                            <div className="xl:col-span-4 flex flex-col gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <BrainIcon className="text-cyber-cyan animate-pulse-slow" />
-                                    <h2 className="font-display text-lg tracking-[0.1em] text-gray-200 drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]">NEXT VECTOR PREDICTION</h2>
+                            <div className="xl:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                                <div className={`cyber-panel p-5 flex flex-col justify-between transition-all duration-500 ${currentPrediction.direction.includes('BUY') ? 'glow-card-buy' : currentPrediction.direction.includes('SELL') ? 'glow-card-sell' : 'border-gray-500'}`}>
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2 border-b border-gray-800 pb-2">
+                                            <span className="text-[10px] font-mono text-cyber-cyan border border-cyber-cyan/30 bg-cyber-cyan/10 px-2 py-0.5">{currentPrediction.pair}</span>
+                                            <span className="text-[10px] font-mono font-bold text-gray-400">CORE_01: LOCAL SIGNAL</span>
+                                        </div>
+                                        <p className="text-[10px] font-mono text-gray-500 uppercase tracking-wider mb-1">Target Vector</p>
+                                        <div className="flex justify-between items-center">
+                                            <h1 className={`text-3xl font-display font-black tracking-widest uppercase ${currentPrediction.direction.includes('BUY') ? 'text-cyber-cyan' : currentPrediction.direction.includes('SELL') ? 'text-cyber-pink' : 'text-gray-500'}`}>
+                                                {currentPrediction.direction}
+                                            </h1>
+                                            <span className="text-xl font-display text-cyber-yellow">{currentPrediction.confidence}%</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 p-3 bg-black/40 border-l border-cyber-cyan text-xs font-mono text-gray-400 h-24 overflow-y-auto">
+                                        <div className="text-[10px] text-cyber-cyan font-bold uppercase mb-1">Indication Matrix</div>
+                                        {currentPrediction.logic}
+                                    </div>
+                                    <div className="pt-2 border-t border-gray-800 flex justify-between text-[11px] font-mono text-gray-500 mt-4">
+                                        <span>WINDOW_EXPIRE</span>
+                                        <span className="text-white font-bold">{formatTime(timeLeft)}</span>
+                                    </div>
                                 </div>
-                                
-                                <div className={`flex-1 cyber-panel p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${currentPrediction.direction.includes('BUY') ? 'glow-card-buy' : currentPrediction.direction.includes('SELL') ? 'glow-card-sell' : 'border-gray-500'}`}>
-                                    
-                                    <div className="flex justify-between items-start z-10 relative">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <span className="text-[10px] font-mono text-cyber-cyan border border-cyber-cyan/30 bg-cyber-cyan/10 px-2 py-0.5 tracking-wider">{currentPrediction.pair}</span>
-                                                <span className="text-[10px] font-mono text-cyber-yellow border border-cyber-yellow/30 bg-cyber-yellow/10 px-2 py-0.5 tracking-wider">{currentPrediction.timeframe}</span>
-                                            </div>
-                                            <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Target Vector</p>
-                                            <div className="flex items-center gap-3">
-                                                <h1 className={`text-4xl lg:text-5xl font-display font-black tracking-widest uppercase ${currentPrediction.direction.includes('BUY') ? 'text-cyber-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]' : currentPrediction.direction.includes('SELL') ? 'text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]' : 'text-gray-500'}`}>
-                                                    {currentPrediction.direction}
-                                                </h1>
-                                                {currentPrediction.direction.includes('BUY') && (
-                                                    <div className="p-2 bg-cyber-cyan/10 rounded-md border border-cyber-cyan text-cyber-cyan shadow-[0_0_10px_rgba(0,240,255,0.4)] animate-bounce">
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                                                    </div>
-                                                )}
-                                                {currentPrediction.direction.includes('SELL') && (
-                                                    <div className="p-2 bg-cyber-pink/10 rounded-md border border-cyber-pink text-cyber-pink shadow-[0_0_10px_rgba(255,0,60,0.4)] animate-bounce" style={{animationDirection: 'reverse'}}>
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                                    </div>
-                                                )}
-                                            </div>
+
+                                <div className={`cyber-panel p-5 flex flex-col justify-between transition-all duration-500 ${!neuralPrediction.connected ? 'opacity-50 border-gray-800' : (neuralPrediction.direction.includes('BUY') ? 'glow-card-neural' : neuralPrediction.direction.includes('SELL') ? 'glow-card-neural' : 'border-cyber-purple')}`}>
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2 border-b border-gray-800 pb-2">
+                                            <span className="text-[10px] font-mono text-cyber-purple border border-cyber-purple/30 bg-cyber-purple/10 px-2 py-0.5">{neuralPrediction.pair}</span>
+                                            <span className="text-[10px] font-mono font-bold text-cyber-purple">CORE_02: MT5 ML ENGINE</span>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-mono text-gray-400 tracking-[0.2em] uppercase mb-1">Probability</p>
-                                            <div className="text-3xl font-display font-bold text-cyber-yellow drop-shadow-[0_0_8px_rgba(252,238,10,0.6)]">
-                                                {currentPrediction.confidence}%
-                                            </div>
+                                        <p className="text-[10px] font-mono text-gray-500 uppercase tracking-wider mb-1">Target Vector</p>
+                                        <div className="flex justify-between items-center">
+                                            <h1 className={`text-3xl font-display font-black tracking-widest uppercase ${neuralPrediction.direction.includes('BUY') ? 'text-cyber-cyan' : neuralPrediction.direction.includes('SELL') ? 'text-cyber-pink' : 'text-gray-500'}`}>
+                                                {neuralPrediction.direction}
+                                            </h1>
+                                            <span className="text-xl font-display text-cyber-purple">{neuralPrediction.confidence}%</span>
                                         </div>
                                     </div>
-                                    
-                                    <div className="mt-8 mb-6 p-4 bg-[rgba(1,0,8,0.7)] border-l-2 border-cyber-cyan relative z-10 font-mono text-sm text-gray-300 shadow-inner rounded-r">
-                                        <div className="flex items-center gap-2 mb-2 text-cyber-cyan">
-                                            <ActivityIcon className="w-4 h-4" />
-                                            <span className="text-[10px] tracking-[0.2em] font-bold uppercase">Logic Execution</span>
-                                        </div>
-                                        <p className="leading-relaxed">{currentPrediction.logic}</p>
+                                    <div className="mt-4 p-3 bg-black/40 border-l border-cyber-purple text-xs font-mono text-gray-400 h-24 overflow-y-auto">
+                                        <div className="text-[10px] text-cyber-purple font-bold uppercase mb-1">Machine Learning Logic</div>
+                                        {neuralPrediction.logic}
                                     </div>
-                                    
-                                    <div className="pt-4 border-t border-gray-800 flex justify-between items-center relative z-10 mt-auto">
-                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-display tracking-widest">
-                                            <ClockIcon className="w-4 h-4" />
-                                            SIGNAL CARD EXPIRE TIME
-                                        </div>
-                                        <div className="font-mono text-2xl font-bold tracking-widest text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
-                                            {formatTime(timeLeft)}
-                                        </div>
+                                    <div className="pt-2 border-t border-gray-800 flex justify-between text-[11px] font-mono text-gray-500 mt-4">
+                                        <span>SOCKET_STATUS</span>
+                                        <span className={`font-bold ${neuralPrediction.connected ? 'text-cyber-green' : 'text-cyber-pink'}`}>{neuralPrediction.connected ? "SYNCED" : "OFFLINE"}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Bottom Row: Tables */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <IndicatorTable title="OSC DATA" data={oscillatorsData} delay="0.3s" />
                             <IndicatorTable title="MA DATA" data={maData} delay="0.4s" />
                         </div>
-                        {/* Live AI Signal Feed Block */}
+                        
                         <div className="animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
                             <LiveSignalFeed signals={strongSignals} />
                         </div>
                     </div>
                 )}
                 
-                {activeTab === "calendar" && (
-                    <EconomicCalendar />
-                )}
-
-                
-                {activeTab === "heatmap" && (
-                    <HeatMapWidget />
-                )}
-
-                {activeTab === "screener" && (
-                    <MarketOverviewWidget />
-                )}
-                {activeTab === "sessions" && (
-                    <MarketSessions />
-                )}
+                {activeTab === "calendar" && <EconomicCalendar />}
+                {activeTab === "heatmap" && <HeatMapWidget />}
+                {activeTab === "screener" && <MarketOverviewWidget />}
+                {activeTab === "sessions" && <MarketSessions />}
 
                 {activeTab === "training" && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
-                        {/* Left Col: Terminal */}
                         <div className="lg:col-span-2 cyber-panel p-0 flex flex-col h-[600px] border border-cyber-purple/30">
                             <div className="px-4 py-3 bg-[rgba(1,0,8,0.9)] border-b border-cyber-purple/30 flex items-center gap-2">
                                 <div className="flex gap-1.5">
@@ -1038,37 +922,46 @@ const App = () => {
                             </div>
                         </div>
 
-                        {/* Right Col: Stats */}
                         <div className="flex flex-col gap-6">
-                            <div className="cyber-panel p-6 shadow-[0_0_15px_rgba(189,0,255,0.15)] border-cyber-purple/30">
-                                <h3 className="font-display font-bold text-gray-200 text-sm tracking-wider mb-6 border-b border-cyber-purple/30 pb-2">PERFORMANCE MATRIX</h3>
+                            <div className="cyber-panel p-5 border-cyber-cyan/30">
+                                <h3 className="font-display font-bold text-cyber-cyan text-xs tracking-wider mb-3 border-b border-cyber-cyan/20 pb-2">CORE 01: PERFORMANCE (LOCAL)</h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-[rgba(1,0,8,0.7)] border border-gray-800 text-center rounded-sm">
-                                        <div className="text-[10px] font-mono text-gray-500 mb-1 tracking-widest">TOTAL</div>
-                                        <div className="text-2xl font-display font-black text-white">{totalSignals}</div>
+                                    <div className="p-3 bg-black/40 border border-gray-800 text-center rounded-sm">
+                                        <div className="text-[9px] font-mono text-gray-500 mb-1">TOTAL EVAL</div>
+                                        <div className="text-xl font-display font-black text-white">{totalSignals}</div>
                                     </div>
-                                    <div className="p-4 bg-[rgba(1,0,8,0.7)] border border-gray-800 text-center rounded-sm">
-                                        <div className="text-[10px] font-mono text-gray-500 mb-1 tracking-widest">WIN RATE</div>
-                                        <div className="text-2xl font-display font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{winRate}%</div>
+                                    <div className="p-3 bg-black/40 border border-gray-800 text-center rounded-sm">
+                                        <div className="text-[9px] font-mono text-gray-500 mb-1">WIN RATE</div>
+                                        <div className="text-xl font-display font-black text-cyber-cyan">{winRate}%</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="cyber-panel flex-1 flex flex-col overflow-hidden border-cyber-purple/30">
-                                <h3 className="font-display font-bold text-gray-200 text-sm tracking-wider px-5 py-4 border-b border-cyber-purple/30 bg-[rgba(1,0,8,0.9)]">SIGNAL HISTORY</h3>
-                                <div className="flex-1 overflow-y-auto terminal-scroll p-2">
-                                    <table className="w-full text-sm text-left">
+                            <div className="cyber-panel p-5 border-cyber-purple/30 flex-1 flex flex-col overflow-hidden">
+                                <h3 className="font-display font-bold text-cyber-purple text-xs tracking-wider mb-3 border-b border-cyber-purple/20 pb-2">CORE 02: PERFORMANCE (MT5 NEURAL)</h3>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div className="p-3 bg-black/40 border border-gray-800 text-center rounded-sm">
+                                        <div className="text-[9px] font-mono text-gray-500 mb-1">TOTAL RUNS</div>
+                                        <div className="text-xl font-display font-black text-white">{neuralTotal}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/40 border border-gray-800 text-center rounded-sm">
+                                        <div className="text-[9px] font-mono text-gray-500 mb-1">ACCURACY</div>
+                                        <div className="text-xl font-display font-black text-cyber-green">{neuralWinRate}%</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto terminal-scroll pr-1">
+                                    <table className="w-full text-xs text-left text-gray-400">
                                         <tbody className="divide-y divide-gray-800/50">
-                                            {history.map((h, i) => (
-                                                <tr key={i} className="font-mono text-xs hover:bg-cyber-purple/20 transition-colors">
-                                                    <td className="px-4 py-3 text-gray-500">{h.time}</td>
-                                                    <td className={`px-4 py-3 font-bold ${h.dir === 'BUY' ? 'text-cyber-cyan drop-shadow-[0_0_3px_rgba(0,240,255,0.5)]' : 'text-cyber-pink drop-shadow-[0_0_3px_rgba(255,0,60,0.5)]'}`}>{h.dir}</td>
-                                                    <td className="px-4 py-3 text-cyber-yellow">{h.conf}%</td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        {h.result === "Win" ? 
-                                                            <span className="text-cyber-green border border-cyber-green/50 px-2 py-0.5 rounded-sm">VALID</span> : 
-                                                            <span className="text-cyber-pink border border-cyber-pink/50 px-2 py-0.5 rounded-sm">INVALID</span>
-                                                        }
+                                            {neuralHistory.map((h) => (
+                                                <tr key={h.id} className="font-mono hover:bg-cyber-purple/10">
+                                                    <td className="py-2 text-gray-500">{h.time}</td>
+                                                    <td className={`py-2 font-bold ${h.dir.includes('BUY') ? 'text-cyber-cyan' : 'text-cyber-pink'}`}>{h.dir}</td>
+                                                    <td className="py-2 text-cyber-yellow text-right">{h.conf}%</td>
+                                                    <td className="py-2 text-right">
+                                                        <span className={`px-1.5 py-0.5 rounded-sm border text-[9px] ${h.result === "Win" ? 'text-cyber-green border-cyber-green/30 bg-cyber-green/5' : 'text-cyber-pink border-cyber-pink/30 bg-cyber-pink/5'}`}>
+                                                            {h.result === "Win" ? "TRUE" : "FALSE"}
+                                                        </span>
                                                     </td>
                                                 </tr>
                                             ))}
