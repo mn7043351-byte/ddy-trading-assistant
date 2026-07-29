@@ -29,7 +29,8 @@
                             pink: '#ff003c',
                             purple: '#bd00ff',
                             yellow: '#fcee0a',
-                            green: '#39ff14'
+                            green: '#39ff14',
+                            orange: '#ff7b00'
                         }
                     },
                     animation: {
@@ -795,7 +796,7 @@ const formatTimeLeft = (seconds) => {
 };
 
 // ---- Strategy Tester Tab Component (now with 5 strategies: core1, core2, core3, core4, scanner) ----
-const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, history1, history2, history3, history4, scanHistory }) => {
+const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, core5, core6, history1, history2, history3, history4, history5, history6, scanHistory }) => {
     const computeStats = (history) => {
         if (!history || history.length === 0) return { total: 0, correct: 0, winRate: 0 };
         const total = history.length;
@@ -808,6 +809,8 @@ const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, hist
     const stats2 = computeStats(history2);
     const stats3 = computeStats(history3);
     const stats4 = computeStats(history4);
+    const stats5 = computeStats(history5);
+    const stats6 = computeStats(history6);
     const statsScan = computeStats(scanHistory);
 
     const renderHistoryTable = (history, label) => {
@@ -843,13 +846,15 @@ const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, hist
     const corePanels = [
         { id: 'core1', label: 'CORE_01 (EURUSD 5M)', signal: core1, stats: stats1, history: history1, color: 'border-cyber-cyan', textColor: 'text-cyber-cyan', bg: 'bg-cyber-cyan/5' },
         { id: 'core2', label: 'CORE_02 (ML 5M)', signal: core2, stats: stats2, history: history2, color: 'border-cyber-purple', textColor: 'text-cyber-purple', bg: 'bg-cyber-purple/5' },
+        { id: 'core3', label: 'CORE_03 (SMC 5M)', signal: core3, stats: stats3, history: history3, color: 'border-cyber-pink', textColor: 'text-cyber-pink', bg: 'bg-cyber-pink/5' },
         { id: 'core4', label: 'CORE_04 (SMA 5M)', signal: core4, stats: stats4, history: history4, color: 'border-cyber-yellow', textColor: 'text-cyber-yellow', bg: 'bg-cyber-yellow/5' },
-        { id: 'core3', label: 'CORE_03 (EURUSD 5M)', signal: core3, stats: stats3, history: history3, color: 'border-cyber-pink', textColor: 'text-cyber-pink', bg: 'bg-cyber-pink/5' },
+        { id: 'core5', label: 'CORE_05 (MTF STRUCT 5M)', signal: core5, stats: stats5, history: history5, color: 'border-cyber-green', textColor: 'text-cyber-green', bg: 'bg-cyber-green/5' },
+        { id: 'core6', label: 'CORE_06 (PRICE ACTION 5M)', signal: core6, stats: stats6, history: history6, color: 'border-cyber-orange', textColor: 'text-cyber-orange', bg: 'bg-cyber-orange/5' },
     ];
 
     return (
         <div className="space-y-8 animate-fade-in-up">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {corePanels.map(p => (
                     <div key={p.id} className={`cyber-panel p-5 border-t-2 ${p.color} ${p.bg}`}>
                         <h3 className={`font-display text-sm tracking-widest ${p.textColor} flex items-center gap-2 mb-3`}>
@@ -1010,8 +1015,10 @@ const App = () => {
     const [currentPrediction, setCurrentPrediction] = useState(defaultDisconnect);
     const [neuralPrediction, setNeuralPrediction] = useState(defaultDisconnect);
     const [cryptoPrediction, setCryptoPrediction] = useState(defaultDisconnect);
-    const [smaPrediction, setSmaPrediction] = useState(defaultDisconnect); // new core4
-    
+    const [smaPrediction, setSmaPrediction] = useState(defaultDisconnect); // core4
+    const [mtfPrediction, setMtfPrediction] = useState(defaultDisconnect); // core5 - MTF Structure Confluence
+    const [paPrediction, setPaPrediction] = useState(defaultDisconnect);   // core6 - Price Action Patterns
+
     const [oscillatorsData, setOscillatorsData] = useState([]);
     const [maData, setMaData] = useState([]);
 
@@ -1019,6 +1026,8 @@ const App = () => {
     const [c2History, setC2History] = useState([]);
     const [c3History, setC3History] = useState([]);
     const [c4History, setC4History] = useState([]);
+    const [c5History, setC5History] = useState([]);
+    const [c6History, setC6History] = useState([]);
     const [scanHistory, setScanHistory] = useState([]);
     const [scannerFeed, setScannerFeed] = useState([]);
 
@@ -1098,27 +1107,31 @@ const App = () => {
                         if (payload.type === "core2") setNeuralPrediction(payload.data);
                         if (payload.type === "core3") setCryptoPrediction(payload.data);
                         if (payload.type === "core4") setSmaPrediction(payload.data);
-                        
+                        if (payload.type === "core5") setMtfPrediction(payload.data);
+                        if (payload.type === "core6") setPaPrediction(payload.data);
+
                         if (payload.type === "scanner") {
                             setScannerFeed(prev => {
                                 if (prev.length > 0 && prev[0].id === payload.data.id) return prev;
                                 return [payload.data, ...prev].slice(0, 8);
                             });
                         }
-                        
-                        // Handle incoming ML training logs from train_model.py
-                        if (payload.type === "training_log") {
-                            setTerminalLogs(prev => [...prev, { id: Date.now() + Math.random(), msg: payload.msg }].slice(-50));
+
+                        // One-time seed: the server's walk-forward backtest (up to
+                        // MAX_BACKTEST_POINTS historical candles) arrives once per core
+                        // right after connecting. Without this, the tester/training
+                        // tabs only ever show the handful of live confirmations that
+                        // trickle in afterwards.
+                        const backtestSetters = {
+                            core1_backtest: setC1History, core2_backtest: setC2History,
+                            core3_backtest: setC3History, core4_backtest: setC4History,
+                            core5_backtest: setC5History, core6_backtest: setC6History,
+                            scan_backtest: setScanHistory,
+                        };
+                        if (backtestSetters[payload.type]) {
+                            backtestSetters[payload.type](payload.data.results || []);
                         }
-                        
-                        // Handle incoming ML training stats from train_model.py (Spoofing history for Training Core UI)
-                        if (payload.type === "training_stats") {
-                            if (payload.core === "core1") {
-                                setC1History(prev => [...prev, payload.data]);
-                            } else if (payload.core === "core2") {
-                                setC2History(prev => [...prev, payload.data]);
-                            }
-                        }
+
                         if (payload.type === "osc_data") setOscillatorsData(payload.data);
                         if (payload.type === "ma_data") setMaData(payload.data);
                         
@@ -1127,6 +1140,8 @@ const App = () => {
                         if (payload.type === "history_core2") setC2History(prev => [...prev, payload.data].slice(-300));
                         if (payload.type === "history_core3") setC3History(prev => [...prev, payload.data].slice(-300));
                         if (payload.type === "history_core4") setC4History(prev => [...prev, payload.data].slice(-300));
+                        if (payload.type === "history_core5") setC5History(prev => [...prev, payload.data].slice(-300));
+                        if (payload.type === "history_core6") setC6History(prev => [...prev, payload.data].slice(-300));
                         if (payload.type === "history_scan") setScanHistory(prev => [...prev, payload.data].slice(-300));
 
                         if (payload.type === "log") {
@@ -1141,6 +1156,8 @@ const App = () => {
                     setNeuralPrediction(defaultDisconnect);
                     setCryptoPrediction(defaultDisconnect);
                     setSmaPrediction(defaultDisconnect);
+                    setMtfPrediction(defaultDisconnect);
+                    setPaPrediction(defaultDisconnect);
                     setScannerFeed([]);
                     setOscillatorsData([]);
                     setMaData([]);
@@ -1347,6 +1364,108 @@ const App = () => {
                                         <span className={`px-2 py-1 bg-black/50 border rounded ${isConnected ? "text-white border-gray-700" : "text-cyber-pink border-cyber-pink/30"}`}>{formatTimeLeft(cryptoTimeLeft)}</span>
                                     </div>
                                 </div>
+
+                                {/* CORE 04 */}
+                                <div className={`cyber-panel p-5 flex flex-col justify-between border-2 transition-all float-fast ${!isConnected ? 'disconnected-card opacity-80' : 'border-cyber-yellow bg-[rgba(252,238,10,0.03)] shadow-[0_0_20px_rgba(252,238,10,0.15)]'}`}>
+                                    <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                                        <span className={`text-[11px] font-mono font-bold px-3 py-1 border ${isConnected ? 'text-cyber-yellow bg-cyber-yellow/15 border-cyber-yellow/50' : 'text-cyber-pink bg-cyber-pink/15 border-cyber-pink/50'}`}>{smaPrediction.pair}</span>
+                                        <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded">
+                                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse shadow-[0_0_8px_#39ff14]' : 'bg-cyber-pink shadow-[0_0_8px_#ff003c]'}`}></span>
+                                            <span className={`text-[9px] font-mono font-black uppercase tracking-wider ${isConnected ? 'text-gray-300' : 'text-cyber-pink'}`}>{isConnected ? "ONLINE" : "OFFLINE"}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col justify-center my-4 text-center relative min-h-[140px]">
+                                        {isCoreRefreshing ? (
+                                            <div className="glitch-text font-mono text-sm font-black tracking-[0.2em] text-cyber-yellow">[ RECALCULATING... ]</div>
+                                        ) : (
+                                            <div className="recalc-wipe-in flex flex-col h-full justify-between">
+                                                <div>
+                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_04: SMA CROSSOVER</span>
+                                                    <h1 className={`text-3xl font-display font-black tracking-widest uppercase mb-1 ${getDirectionColor(smaPrediction.direction)}`}>{smaPrediction.direction}</h1>
+                                                    <div className="flex justify-center items-center gap-4">
+                                                        <span className={`text-lg font-mono font-black tracking-widest ${isConnected ? 'text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.8)]' : 'text-cyber-pink'}`}>{smaPrediction.confidence}%</span>
+                                                        {isConnected && smaPrediction.price && (
+                                                            <span className="text-sm font-mono text-gray-300 bg-black/50 px-2 py-0.5 rounded border border-gray-700">ENTRY: {typeof smaPrediction.price === 'number' ? smaPrediction.price.toFixed(5) : smaPrediction.price}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className={`mt-4 p-3 bg-black/60 border-l-2 text-[11px] font-mono h-20 overflow-y-auto rounded-r text-left ${isConnected ? 'border-cyber-yellow text-gray-300' : 'border-cyber-pink text-cyber-pink font-bold'}`}>{smaPrediction.logic}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="pt-3 border-t border-gray-800 flex justify-between items-center text-[10px] font-mono text-gray-400 mt-auto font-bold tracking-wider">
+                                        <span>EXPIRE_CLOCK</span>
+                                        <span className={`px-2 py-1 bg-black/50 border rounded ${isConnected ? "text-white border-gray-700" : "text-cyber-pink border-cyber-pink/30"}`}>{formatTimeLeft(timeLeft)}</span>
+                                    </div>
+                                </div>
+
+                                {/* CORE 05 - MTF Structure Confluence */}
+                                <div className={`cyber-panel p-5 flex flex-col justify-between border-2 transition-all float-medium ${!isConnected ? 'disconnected-card opacity-80' : 'border-cyber-green bg-[rgba(57,255,20,0.03)] shadow-[0_0_20px_rgba(57,255,20,0.15)]'}`}>
+                                    <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                                        <span className={`text-[11px] font-mono font-bold px-3 py-1 border ${isConnected ? 'text-cyber-green bg-cyber-green/15 border-cyber-green/50' : 'text-cyber-pink bg-cyber-pink/15 border-cyber-pink/50'}`}>{mtfPrediction.pair}</span>
+                                        <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded">
+                                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse shadow-[0_0_8px_#39ff14]' : 'bg-cyber-pink shadow-[0_0_8px_#ff003c]'}`}></span>
+                                            <span className={`text-[9px] font-mono font-black uppercase tracking-wider ${isConnected ? 'text-gray-300' : 'text-cyber-pink'}`}>{isConnected ? "ONLINE" : "OFFLINE"}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col justify-center my-4 text-center relative min-h-[140px]">
+                                        {isCoreRefreshing ? (
+                                            <div className="glitch-text font-mono text-sm font-black tracking-[0.2em] text-cyber-green">[ RECALCULATING... ]</div>
+                                        ) : (
+                                            <div className="recalc-wipe-in flex flex-col h-full justify-between">
+                                                <div>
+                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_05: MTF STRUCTURE</span>
+                                                    <h1 className={`text-3xl font-display font-black tracking-widest uppercase mb-1 ${getDirectionColor(mtfPrediction.direction)}`}>{mtfPrediction.direction}</h1>
+                                                    <div className="flex justify-center items-center gap-4">
+                                                        <span className={`text-lg font-mono font-black tracking-widest ${isConnected ? 'text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.8)]' : 'text-cyber-pink'}`}>{mtfPrediction.confidence}%</span>
+                                                        {isConnected && mtfPrediction.price && (
+                                                            <span className="text-sm font-mono text-gray-300 bg-black/50 px-2 py-0.5 rounded border border-gray-700">ENTRY: {typeof mtfPrediction.price === 'number' ? mtfPrediction.price.toFixed(5) : mtfPrediction.price}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className={`mt-4 p-3 bg-black/60 border-l-2 text-[11px] font-mono h-20 overflow-y-auto rounded-r text-left ${isConnected ? 'border-cyber-green text-gray-300' : 'border-cyber-pink text-cyber-pink font-bold'}`}>{mtfPrediction.logic}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="pt-3 border-t border-gray-800 flex justify-between items-center text-[10px] font-mono text-gray-400 mt-auto font-bold tracking-wider">
+                                        <span>EXPIRE_CLOCK</span>
+                                        <span className={`px-2 py-1 bg-black/50 border rounded ${isConnected ? "text-white border-gray-700" : "text-cyber-pink border-cyber-pink/30"}`}>{formatTimeLeft(timeLeft)}</span>
+                                    </div>
+                                </div>
+
+                                {/* CORE 06 - Price Action Patterns */}
+                                <div className={`cyber-panel p-5 flex flex-col justify-between border-2 transition-all float-slow ${!isConnected ? 'disconnected-card opacity-80' : 'border-cyber-orange bg-[rgba(255,123,0,0.03)] shadow-[0_0_20px_rgba(255,123,0,0.15)]'}`}>
+                                    <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                                        <span className={`text-[11px] font-mono font-bold px-3 py-1 border ${isConnected ? 'text-cyber-orange bg-cyber-orange/15 border-cyber-orange/50' : 'text-cyber-pink bg-cyber-pink/15 border-cyber-pink/50'}`}>{paPrediction.pair}</span>
+                                        <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded">
+                                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse shadow-[0_0_8px_#39ff14]' : 'bg-cyber-pink shadow-[0_0_8px_#ff003c]'}`}></span>
+                                            <span className={`text-[9px] font-mono font-black uppercase tracking-wider ${isConnected ? 'text-gray-300' : 'text-cyber-pink'}`}>{isConnected ? "ONLINE" : "OFFLINE"}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col justify-center my-4 text-center relative min-h-[140px]">
+                                        {isCoreRefreshing ? (
+                                            <div className="glitch-text font-mono text-sm font-black tracking-[0.2em] text-cyber-orange">[ RECALCULATING... ]</div>
+                                        ) : (
+                                            <div className="recalc-wipe-in flex flex-col h-full justify-between">
+                                                <div>
+                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_06: PRICE ACTION</span>
+                                                    <h1 className={`text-3xl font-display font-black tracking-widest uppercase mb-1 ${getDirectionColor(paPrediction.direction)}`}>{paPrediction.direction}</h1>
+                                                    <div className="flex justify-center items-center gap-4">
+                                                        <span className={`text-lg font-mono font-black tracking-widest ${isConnected ? 'text-cyber-orange drop-shadow-[0_0_5px_rgba(255,123,0,0.8)]' : 'text-cyber-pink'}`}>{paPrediction.confidence}%</span>
+                                                        {isConnected && paPrediction.price && (
+                                                            <span className="text-sm font-mono text-gray-300 bg-black/50 px-2 py-0.5 rounded border border-gray-700">ENTRY: {typeof paPrediction.price === 'number' ? paPrediction.price.toFixed(5) : paPrediction.price}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className={`mt-4 p-3 bg-black/60 border-l-2 text-[11px] font-mono h-20 overflow-y-auto rounded-r text-left ${isConnected ? 'border-cyber-orange text-gray-300' : 'border-cyber-pink text-cyber-pink font-bold'}`}>{paPrediction.logic}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="pt-3 border-t border-gray-800 flex justify-between items-center text-[10px] font-mono text-gray-400 mt-auto font-bold tracking-wider">
+                                        <span>EXPIRE_CLOCK</span>
+                                        <span className={`px-2 py-1 bg-black/50 border rounded ${isConnected ? "text-white border-gray-700" : "text-cyber-pink border-cyber-pink/30"}`}>{formatTimeLeft(timeLeft)}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1366,10 +1485,14 @@ const App = () => {
                         core2={neuralPrediction}
                         core3={cryptoPrediction}
                         core4={smaPrediction}
+                        core5={mtfPrediction}
+                        core6={paPrediction}
                         history1={c1History}
                         history2={c2History}
                         history3={c3History}
                         history4={c4History}
+                        history5={c5History}
+                        history6={c6History}
                         scanHistory={scanHistory}
                     />
                 )}
@@ -1469,6 +1592,44 @@ const App = () => {
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">ACCURACY</div>
                                         <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c4History.length > 0 ? Math.round((c4History.filter(x => x.accuracy === 100).length / c4History.length) * 100) : 0}%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Core 05 Tracker Box */}
+                            <div className="cyber-panel p-5 border-l-4 border-cyber-green bg-black/40 float-fast hover:bg-black/60 transition-colors">
+                                <h3 className="font-display font-black text-sm tracking-widest text-cyber-green border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">CORE_05 MTF STRUCTURE CONFLUENCE (5M)</h3>
+                                <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs font-bold">
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">TOTAL</div>
+                                        <div className="text-xl font-black text-white">{c5History.length}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">TRUE POS</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c5History.filter(x => x.accuracy === 100).length}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">ACCURACY</div>
+                                        <div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{c5History.length > 0 ? Math.round((c5History.filter(x => x.accuracy === 100).length / c5History.length) * 100) : 0}%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Core 06 Tracker Box */}
+                            <div className="cyber-panel p-5 border-l-4 border-cyber-orange bg-black/40 float-slow hover:bg-black/60 transition-colors">
+                                <h3 className="font-display font-black text-sm tracking-widest text-cyber-orange border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(255,123,0,0.5)]">CORE_06 PRICE ACTION PATTERNS (5M)</h3>
+                                <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs font-bold">
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-orange/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">TOTAL</div>
+                                        <div className="text-xl font-black text-white">{c6History.length}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">TRUE POS</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c6History.filter(x => x.accuracy === 100).length}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">ACCURACY</div>
+                                        <div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{c6History.length > 0 ? Math.round((c6History.filter(x => x.accuracy === 100).length / c6History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
