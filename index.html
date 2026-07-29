@@ -214,7 +214,7 @@ const MT5_TF_LABELS = {
 };
 
 // MT5 candle "time" is the broker server's clock. Offset to match PKT if needed.
-const PKT_OFFSET_HOURS = 0;
+const PKT_OFFSET_HOURS = 2; // Assuming broker is UTC+3 (e.g. Exness/ICMarkets summer time) and PKT is UTC+5, diff is 2 hrs.
 const PKT_OFFSET_SECONDS = PKT_OFFSET_HOURS * 3600;
 const shiftTime = (t) => t + PKT_OFFSET_SECONDS;
 const pktTimeFormatter = (time) => {
@@ -263,15 +263,17 @@ function calcRsi(values, period = 14) {
     return out;
 }
 
-const LiveMt5Chart = ({ candleMap, symbol, isConnected }) => {
+const LiveMt5Chart = ({ candleMap, marketStructureData, symbol, isConnected }) => {
     const containerRef = useRef(null);
     const rsiContainerRef = useRef(null);
     const chartRef = useRef(null);
     const rsiChartRef = useRef(null);
     const seriesRef = useRef(null);
+    const volumeSeriesRef = useRef(null);
     const emaFastRef = useRef(null);
     const emaSlowRef = useRef(null);
     const rsiSeriesRef = useRef(null);
+    const srLinesRef = useRef([]);
     const [activeTf, setActiveTf] = useState("PERIOD_M5");
     const syncingRef = useRef(false);
 
@@ -311,6 +313,13 @@ const LiveMt5Chart = ({ candleMap, symbol, isConnected }) => {
             borderVisible: false,
             wickUpColor: '#39ff14',
             wickDownColor: '#ff003c',
+            priceFormat: { type: 'price', precision: 5, minMove: 0.00001 }
+        });
+        const volumeSeries = chart.addHistogramSeries({
+            color: '#26a69a',
+            priceFormat: { type: 'volume' },
+            priceScaleId: '', // set as an overlay by setting a blank priceScaleId
+            scaleMargins: { top: 0.8, bottom: 0 },
         });
         const emaFast = chart.addLineSeries({ color: '#fcee0a', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, title: 'EMA9' });
         const emaSlow = chart.addLineSeries({ color: '#bd00ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, title: 'EMA21' });
@@ -348,6 +357,7 @@ const LiveMt5Chart = ({ candleMap, symbol, isConnected }) => {
         chartRef.current = chart;
         rsiChartRef.current = rsiChart;
         seriesRef.current = series;
+        volumeSeriesRef.current = volumeSeries;
         emaFastRef.current = emaFast;
         emaSlowRef.current = emaSlow;
         rsiSeriesRef.current = rsiSeries;
@@ -380,6 +390,15 @@ const LiveMt5Chart = ({ candleMap, symbol, isConnected }) => {
         const ohlc = sorted.map(c => ({ time: shiftTime(c.time), open: c.open, high: c.high, low: c.low, close: c.close }));
         seriesRef.current.setData(ohlc);
 
+        if (volumeSeriesRef.current) {
+            const volData = sorted.map(c => ({
+                time: shiftTime(c.time),
+                value: c.tick_volume,
+                color: c.close >= c.open ? 'rgba(57, 255, 20, 0.4)' : 'rgba(255, 0, 60, 0.4)'
+            }));
+            volumeSeriesRef.current.setData(volData);
+        }
+
         const ema9 = calcEma(closes, 9);
         const ema21 = calcEma(closes, 21);
         emaFastRef.current.setData(sorted.map((c, i) => ema9[i] !== null ? { time: shiftTime(c.time), value: ema9[i] } : null).filter(Boolean));
@@ -391,6 +410,31 @@ const LiveMt5Chart = ({ candleMap, symbol, isConnected }) => {
         chartRef.current.timeScale().fitContent();
         rsiChartRef.current.timeScale().fitContent();
     }, [candleMap, symbol, activeTf]);
+
+    useEffect(() => {
+        if (!seriesRef.current || !marketStructureData) return;
+        const key = `${symbol}_${activeTf}`;
+        const data = marketStructureData[key];
+        
+        // Remove old S&R lines
+        srLinesRef.current.forEach(line => seriesRef.current.removePriceLine(line));
+        srLinesRef.current = [];
+
+        if (data) {
+            data.support.forEach(price => {
+                const line = seriesRef.current.createPriceLine({
+                    price, color: 'rgba(57, 255, 20, 0.8)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Solid, title: 'Support'
+                });
+                srLinesRef.current.push(line);
+            });
+            data.resistance.forEach(price => {
+                const line = seriesRef.current.createPriceLine({
+                    price, color: 'rgba(255, 0, 60, 0.8)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Solid, title: 'Resistance'
+                });
+                srLinesRef.current.push(line);
+            });
+        }
+    }, [marketStructureData, symbol, activeTf]);
 
     const latestKey = `${symbol}_${activeTf}`;
     const latestCandles = candleMap[latestKey];
@@ -800,7 +844,7 @@ const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, hist
         { id: 'core1', label: 'CORE_01 (EURUSD 5M)', signal: core1, stats: stats1, history: history1, color: 'border-cyber-cyan', textColor: 'text-cyber-cyan', bg: 'bg-cyber-cyan/5' },
         { id: 'core2', label: 'CORE_02 (ML 5M)', signal: core2, stats: stats2, history: history2, color: 'border-cyber-purple', textColor: 'text-cyber-purple', bg: 'bg-cyber-purple/5' },
         { id: 'core4', label: 'CORE_04 (SMA 5M)', signal: core4, stats: stats4, history: history4, color: 'border-cyber-yellow', textColor: 'text-cyber-yellow', bg: 'bg-cyber-yellow/5' },
-        { id: 'core3', label: 'CORE_03 (BTCUSD 15M)', signal: core3, stats: stats3, history: history3, color: 'border-cyber-pink', textColor: 'text-cyber-pink', bg: 'bg-cyber-pink/5' },
+        { id: 'core3', label: 'CORE_03 (EURUSD 5M)', signal: core3, stats: stats3, history: history3, color: 'border-cyber-pink', textColor: 'text-cyber-pink', bg: 'bg-cyber-pink/5' },
     ];
 
     return (
@@ -891,11 +935,74 @@ const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, hist
     );
 };
 
+const MarketStructureWidget = ({ data, symbol, isConnected }) => {
+    if (!isConnected || !data) {
+        return (
+            <div className="cyber-panel p-5 border-t-2 border-cyber-pink disconnected-card float-slow">
+                <div className="flex items-center gap-3 mb-2 px-2">
+                     <BrainIcon className="text-cyber-pink animate-pulse" />
+                     <h2 className="font-display text-lg tracking-[0.1em] text-cyber-pink">AI MARKET STRUCTURE</h2>
+                </div>
+                <div className="p-4 text-center font-mono text-cyber-pink font-bold">DISCONNECTED - AWAITING DATA...</div>
+            </div>
+        );
+    }
+    
+    let trendColor = "text-gray-400";
+    if (data.trend.includes("BULLISH")) trendColor = "text-cyber-green drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]";
+    if (data.trend.includes("BEARISH")) trendColor = "text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,60,0.8)]";
+    if (data.trend.includes("CONSOLIDATION") || data.trend.includes("EXPANSION")) trendColor = "text-cyber-yellow drop-shadow-[0_0_10px_rgba(252,238,10,0.8)]";
+
+    return (
+        <div className="cyber-panel p-5 border-t-2 border-cyber-cyan shadow-[0_0_20px_rgba(0,240,255,0.15)] float-medium">
+             <div className="flex items-center gap-3 mb-4 border-b border-cyber-cyan/40 pb-2 relative z-10 px-2">
+                 <BrainIcon className="text-cyber-cyan animate-pulse" />
+                 <h2 className="font-display text-lg tracking-[0.1em] text-white">AI MARKET STRUCTURE ({symbol})</h2>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 {/* Trend Panel */}
+                 <div className="bg-black/40 p-4 border border-gray-800 rounded flex flex-col justify-center items-center">
+                     <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest mb-2">CURRENT TREND</span>
+                     <h3 className={`font-display text-2xl font-black ${trendColor} text-center`}>{data.trend}</h3>
+                 </div>
+                 
+                 {/* Resistance Panel */}
+                 <div className="bg-black/40 p-4 border border-gray-800 rounded">
+                     <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest mb-2 block border-b border-gray-800 pb-1">KEY RESISTANCE</span>
+                     <div className="space-y-1 mt-2">
+                         {data.resistance && data.resistance.length > 0 ? [...data.resistance].reverse().map((r, i) => (
+                             <div key={i} className="flex justify-between font-mono text-sm">
+                                 <span className="text-cyber-pink">R{i+1}</span>
+                                 <span className="text-white font-bold">{r.toFixed(5)}</span>
+                             </div>
+                         )) : <div className="text-gray-600 font-mono text-xs">No clear resistance</div>}
+                     </div>
+                 </div>
+                 
+                 {/* Support Panel */}
+                 <div className="bg-black/40 p-4 border border-gray-800 rounded">
+                     <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest mb-2 block border-b border-gray-800 pb-1">KEY SUPPORT</span>
+                     <div className="space-y-1 mt-2">
+                         {data.support && data.support.length > 0 ? [...data.support].reverse().map((s, i) => (
+                             <div key={i} className="flex justify-between font-mono text-sm">
+                                 <span className="text-cyber-green">S{i+1}</span>
+                                 <span className="text-white font-bold">{s.toFixed(5)}</span>
+                             </div>
+                         )) : <div className="text-gray-600 font-mono text-xs">No clear support</div>}
+                     </div>
+                 </div>
+             </div>
+        </div>
+    );
+};
+
 // ---- Main App ----
 const App = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [tickerQuotes, setTickerQuotes] = useState({});
     const [candleMap, setCandleMap] = useState({});
+    const [marketStructureData, setMarketStructureData] = useState({});
     const [isConnected, setIsConnected] = useState(false);
 
     const defaultDisconnect = { direction: "DISCONNECTED", confidence: 0, logic: "SERVER OFFLINE - AWAITING STREAM...", pair: "---", timeframe: "---" };
@@ -981,6 +1088,11 @@ const App = () => {
                             const key = `${payload.symbol}_${payload.tf}`;
                             setCandleMap(prev => ({ ...prev, [key]: payload.candles }));
                         }
+                        
+                        if (payload.type === "market_structure") {
+                            const key = `${payload.symbol}_${payload.tf}`;
+                            setMarketStructureData(prev => ({ ...prev, [key]: payload.data }));
+                        }
 
                         if (payload.type === "core1") setCurrentPrediction(payload.data);
                         if (payload.type === "core2") setNeuralPrediction(payload.data);
@@ -988,7 +1100,24 @@ const App = () => {
                         if (payload.type === "core4") setSmaPrediction(payload.data);
                         
                         if (payload.type === "scanner") {
-                            setScannerFeed(prev => [payload.data, ...prev].slice(0, 8));
+                            setScannerFeed(prev => {
+                                if (prev.length > 0 && prev[0].id === payload.data.id) return prev;
+                                return [payload.data, ...prev].slice(0, 8);
+                            });
+                        }
+                        
+                        // Handle incoming ML training logs from train_model.py
+                        if (payload.type === "training_log") {
+                            setTerminalLogs(prev => [...prev, { id: Date.now() + Math.random(), msg: payload.msg }].slice(-50));
+                        }
+                        
+                        // Handle incoming ML training stats from train_model.py (Spoofing history for Training Core UI)
+                        if (payload.type === "training_stats") {
+                            if (payload.core === "core1") {
+                                setC1History(prev => [...prev, payload.data]);
+                            } else if (payload.core === "core2") {
+                                setC2History(prev => [...prev, payload.data]);
+                            }
                         }
                         if (payload.type === "osc_data") setOscillatorsData(payload.data);
                         if (payload.type === "ma_data") setMaData(payload.data);
@@ -1017,6 +1146,7 @@ const App = () => {
                     setMaData([]);
                     setTickerQuotes({});
                     setCandleMap({});
+                    setMarketStructureData({});
                     
                     setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now(), msg: "[ERR] Connection Lost. Reconnecting in 3s..." }]);
                     setTimeout(connectToCore, 3000);
@@ -1100,7 +1230,9 @@ const App = () => {
                 {activeTab === "dashboard" && (
                     <div className="space-y-8">
                         <div className="grid grid-cols-1 gap-8">
-                            <LiveMt5Chart candleMap={candleMap} symbol="EURUSD" isConnected={isConnected} />
+                            <LiveMt5Chart candleMap={candleMap} marketStructureData={marketStructureData} symbol="EURUSD" isConnected={isConnected} />
+                            
+                            <MarketStructureWidget data={marketStructureData["EURUSD_PERIOD_M5"]} symbol="EURUSD M5" isConnected={isConnected} />
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                 {/* CORE 01 */}
@@ -1201,7 +1333,7 @@ const App = () => {
                                         ) : (
                                             <div className="recalc-wipe-in flex flex-col h-full justify-between">
                                                 <div>
-                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_03: FUTURES MTX</span>
+                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_03: SMC MATRIX</span>
                                                     <h1 className={`text-3xl font-display font-black tracking-widest uppercase mb-1 ${getDirectionColor(cryptoPrediction.direction)}`}>{cryptoPrediction.direction}</h1>
                                                     <span className={`text-lg font-mono font-black tracking-widest ${isConnected ? 'text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.8)]' : 'text-cyber-pink'}`}>{cryptoPrediction.confidence}%</span>
                                                 </div>
@@ -1304,20 +1436,20 @@ const App = () => {
                             </div>
 
                             {/* Core 03 Tracker Box */}
-                            <div className="cyber-panel p-5 border-l-4 border-cyber-yellow bg-black/40 float-fast hover:bg-black/60 transition-colors">
-                                <h3 className="font-display font-black text-sm tracking-widest text-cyber-yellow border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">CORE_03 BINANCE FUTURES TRACKER (1H)</h3>
+                            <div className="cyber-panel p-5 border-l-4 border-cyber-yellow bg-black/40 float-medium hover:bg-black/60 transition-colors">
+                                <h3 className="font-display font-black text-sm tracking-widest text-cyber-yellow border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">CORE_03 SMART MONEY CONCEPTS (5M)</h3>
                                 <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs font-bold">
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors">
-                                        <div className="text-gray-500 text-[10px] mb-1">DERIVATIVES</div>
+                                        <div className="text-gray-500 text-[10px] mb-1">TOTAL RUNS</div>
                                         <div className="text-xl font-black text-white">{c3History.length}</div>
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
-                                        <div className="text-gray-500 text-[10px] mb-1">BREAKOUTS</div>
+                                        <div className="text-gray-500 text-[10px] mb-1">BOS DETECTS</div>
                                         <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c3History.filter(x => x.accuracy === 100).length}</div>
                                     </div>
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
-                                        <div className="text-gray-500 text-[10px] mb-1">HIT RATE</div>
-                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c3History.length > 0 ? Math.round((c3History.filter(x => x.accuracy === 100).length / c3History.length) * 100) : 0}%</div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">WIN RATE</div>
+                                        <div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{c3History.length > 0 ? Math.round((c3History.filter(x => x.accuracy === 100).length / c3History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
