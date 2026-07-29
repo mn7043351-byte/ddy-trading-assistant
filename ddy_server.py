@@ -63,6 +63,14 @@ latest_account = {}
 latest_positions = []
 pending_command = {"action": "none"}   # queued order for the EA to pick up on its next poll
 
+# Cache of the most recent candles per (symbol, tf) — the EA sends M1/M5/M15/H1
+# every poll, so we stash each one here as it arrives. CORE_05 uses this to look
+# at M15/H1 structure at the same time as an M5 signal, without needing another
+# round trip. NOTE: this cache only ever holds the *current live* snapshot, so
+# during the walk-forward backtest (which replays historical M5 windows) the
+# HTF confirmation step is intentionally skipped — see mtf_structure_signal().
+LATEST_CANDLES = {}   # key: (symbol, tf) -> candles list
+
 app = Flask(__name__)
 
 
@@ -518,6 +526,160 @@ def sma_crossover_signal(candles, pair, timeframe_label):
 
 
 # ----------------------------------------------------------------------------
+# CORE_05 — Multi-Timeframe Structure Confluence
+# Same idea as the TradingView "Market Structure Dashboard": M5 alone is noisy,
+# so weight M5/M15/H1 structure + EMA9 trend together (higher TF = more weight)
+# and only fire a signal when the timeframes actually agree. This is meant to
+# trade LESS often than core1-4, but with a real reason for each trade.
+# ----------------------------------------------------------------------------
+def _tf_bias(candles):
+    """Return (+1/-1/0) combining market-structure + EMA9/21 trend for one TF."""
+    if not candles or len(candles) < MIN_CANDLES:
+        return 0, "no data"
+    closes = [c["close"] for c in candles]
+    struct = analyze_market_structure(candles)["trend"]
+    struct_dir = 1 if "BULLISH" in struct else -1 if "BEARISH" in struct else 0
+
+    fast = ema_series(closes, 9)
+    slow = ema_series(closes, 21)
+    ema_dir = 0
+    if fast[-1] is not None and slow[-1] is not None:
+        ema_dir = 1 if fast[-1] > slow[-1] else -1
+
+    combined = struct_dir + ema_dir  # -2..+2
+    bias = 1 if combined >= 1 else -1 if combined <= -1 else 0
+    return bias, struct
+
+
+def mtf_structure_signal(candles, pair, timeframe_label, mtf_context=None):
+    """
+    mtf_context: {"PERIOD_M15": [...candles], "PERIOD_H1": [...candles]} — only
+    passed in by the live pipeline (receive_data). Left as None during the
+    walk-forward backtest, so the backtest only ever scores the M5 component
+    (no lookahead from "future" H1 data).
+    """
+    closes = [c["close"] for c in candles]
+    if len(closes) < MIN_CANDLES:
+        return {
+            "pair": pair, "timeframe": timeframe_label,
+            "direction": "NEUTRAL", "confidence": 0,
+            "price": closes[-1] if closes else 0,
+            "logic": f"Collecting {timeframe_label} history ({len(closes)}/{MIN_CANDLES} candles)..."
+        }
+
+    price = closes[-1]
+    m5_bias, m5_struct = _tf_bias(candles)
+
+    weighted_score = m5_bias * 1   # M5 weight = 1
+    max_score = 1
+    tf_notes = [f"M5={m5_struct.split(' ')[0]}"]
+
+    if mtf_context:
+        m15_candles = mtf_context.get("PERIOD_M15")
+        h1_candles = mtf_context.get("PERIOD_H1")
+        if m15_candles:
+            m15_bias, m15_struct = _tf_bias(m15_candles)
+            weighted_score += m15_bias * 2   # M15 weight = 2
+            max_score += 2
+            tf_notes.append(f"M15={m15_struct.split(' ')[0]}")
+        if h1_candles:
+            h1_bias, h1_struct = _tf_bias(h1_candles)
+            weighted_score += h1_bias * 3    # H1 weight = 3
+            max_score += 3
+            tf_notes.append(f"H1={h1_struct.split(' ')[0]}")
+
+    # Require the majority of *available* weight to agree — this is what makes
+    # it a confluence filter instead of just another single-TF vote.
+    if max_score >= 3 and weighted_score >= math.ceil(max_score * 0.6):
+        direction = "BUY"
+    elif max_score >= 3 and weighted_score <= -math.ceil(max_score * 0.6):
+        direction = "SELL"
+    elif max_score < 3:
+        # Not enough HTF data cached yet (e.g. backtest, or just started) —
+        # fall back to M5-only, but cap confidence since it's a weaker signal.
+        direction = "BUY" if m5_bias == 1 else "SELL" if m5_bias == -1 else "NEUTRAL"
+    else:
+        direction = "NEUTRAL"
+
+    if direction == "NEUTRAL":
+        confidence = 50
+    else:
+        agree_ratio = abs(weighted_score) / max_score if max_score else 0
+        confidence = round(50 + agree_ratio * 40)
+        if max_score < 3:
+            confidence = min(confidence, 60)  # M5-only fallback, less trust
+        confidence = min(confidence, 95)
+
+    logic = f"MTF confluence [{', '.join(tf_notes)}] weighted {weighted_score:+d}/{max_score}."
+    return {
+        "pair": pair, "timeframe": timeframe_label,
+        "direction": direction, "confidence": confidence,
+        "price": price, "logic": logic
+    }
+
+
+# ----------------------------------------------------------------------------
+# CORE_06 — Price Action Patterns (pin bar / engulfing / inside-outside bar)
+# Adapted from the classic ChrisMoody "CM_Price-Action-Bars" logic the user
+# supplied: reversal candles that reject a swing high/low, plus engulfing
+# bars, scored on the M5 chart.
+# ----------------------------------------------------------------------------
+def price_action_pattern_signal(candles, pair, timeframe_label,
+                                 pct_pin=0.66, lookback=6):
+    if len(candles) < max(MIN_CANDLES, lookback + 2):
+        return {
+            "pair": pair, "timeframe": timeframe_label,
+            "direction": "NEUTRAL", "confidence": 0,
+            "price": candles[-1]["close"] if candles else 0,
+            "logic": f"Collecting {timeframe_label} history ({len(candles)}/{MIN_CANDLES} candles)..."
+        }
+
+    c = candles[-1]
+    prev = candles[-2]
+    o, h, l, cl = c["open"], c["high"], c["low"], c["close"]
+    rng = max(h - l, 1e-9)
+    price = cl
+
+    window_lows = [x["low"] for x in candles[-(lookback + 1):-1]]
+    window_highs = [x["high"] for x in candles[-(lookback + 1):-1]]
+
+    direction = "NEUTRAL"
+    confidence = 50
+    logic = "No clean price-action pattern on the last candle."
+
+    # Bullish pin bar: closes/opens in the top (1-pct_pin) of the range,
+    # and the low undercuts the recent swing low (liquidity grab + rejection)
+    if o >= h - rng * (1 - pct_pin) and cl >= h - rng * (1 - pct_pin) and window_lows and l <= min(window_lows):
+        direction = "BUY"
+        confidence = 78
+        logic = f"Bullish pin bar: swept {lookback}-bar low ({min(window_lows):.5f}) and rejected upward."
+
+    # Bearish pin bar
+    elif o <= l + rng * (1 - pct_pin) and cl <= l + rng * (1 - pct_pin) and window_highs and h >= max(window_highs):
+        direction = "SELL"
+        confidence = 78
+        logic = f"Bearish pin bar: swept {lookback}-bar high ({max(window_highs):.5f}) and rejected downward."
+
+    # Bullish engulfing: current green candle's body engulfs prior red body
+    elif cl > o and prev["close"] < prev["open"] and cl >= prev["open"] and o <= prev["close"]:
+        direction = "BUY"
+        confidence = 68
+        logic = "Bullish engulfing bar over prior candle."
+
+    # Bearish engulfing
+    elif cl < o and prev["close"] > prev["open"] and cl <= prev["open"] and o >= prev["close"]:
+        direction = "SELL"
+        confidence = 68
+        logic = "Bearish engulfing bar over prior candle."
+
+    return {
+        "pair": pair, "timeframe": timeframe_label,
+        "direction": direction, "confidence": confidence,
+        "price": price, "logic": logic
+    }
+
+
+# ----------------------------------------------------------------------------
 # OSC DATA / MA DATA tables — built from the same EURUSD M5 candles
 # ----------------------------------------------------------------------------
 def build_osc_table(candles):
@@ -705,6 +867,9 @@ def receive_data():
             # Raw candles straight through -> chart (and client-side EMA/RSI) draw from this
             broadcast({"type": "candles", "symbol": symbol, "tf": tf, "candles": candles})
 
+            # Cache latest candles per (symbol, tf) for CORE_05's MTF confluence
+            LATEST_CANDLES[(symbol, tf)] = candles
+
             # Broadcast advanced technicals & Market Structure per TF
             struct = analyze_market_structure(candles)
             broadcast({"type": "market_structure", "symbol": symbol, "tf": tf, "data": struct})
@@ -715,10 +880,18 @@ def receive_data():
                 core2_sig = ml_formula_signal(candles, "EURUSD", "5 MIN")
                 core3_sig = smc_strategy_signal(candles, "EURUSD", "5 MIN")
                 core4_sig = sma_crossover_signal(candles, "EURUSD", "5 MIN")
+                mtf_ctx = {
+                    "PERIOD_M15": LATEST_CANDLES.get(("EURUSD", "PERIOD_M15")),
+                    "PERIOD_H1": LATEST_CANDLES.get(("EURUSD", "PERIOD_H1")),
+                }
+                core5_sig = mtf_structure_signal(candles, "EURUSD", "5 MIN", mtf_context=mtf_ctx)
+                core6_sig = price_action_pattern_signal(candles, "EURUSD", "5 MIN")
                 broadcast({"type": "core1", "data": core1_sig})
                 broadcast({"type": "core2", "data": core2_sig})
                 broadcast({"type": "core3", "data": core3_sig})
                 broadcast({"type": "core4", "data": core4_sig})
+                broadcast({"type": "core5", "data": core5_sig})
+                broadcast({"type": "core6", "data": core6_sig})
 
                 if len(candles) >= 21:
                     broadcast({"type": "osc_data", "data": build_osc_table(candles)})
@@ -728,7 +901,9 @@ def receive_data():
                 for core, fn in [("core1", composite_technical_signal),
                                  ("core2", ml_formula_signal),
                                  ("core3", smc_strategy_signal),
-                                 ("core4", sma_crossover_signal)]:
+                                 ("core4", sma_crossover_signal),
+                                 ("core5", mtf_structure_signal),
+                                 ("core6", price_action_pattern_signal)]:
                     seed = maybe_seed_backtest(core, fn, candles, "EURUSD", "5 MIN")
                     if seed:
                         broadcast({"type": f"{core}_backtest", "data": seed})
