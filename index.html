@@ -59,6 +59,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     
     <style>
         body { background-color: #030014; color: #e2e8f0; font-family: 'Rajdhani', sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
@@ -69,7 +70,6 @@
         .terminal-scroll::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
         .terminal-scroll::-webkit-scrollbar-thumb { background-color: #00f0ff; border-radius: 10px; }
         
-        /* ADVANCED CYBER PANEL WITH GLASSMORPHISM */
         .cyber-panel { 
             background: linear-gradient(135deg, rgba(10, 10, 31, 0.8) 0%, rgba(3, 0, 20, 0.95) 100%);
             border: 1px solid rgba(0, 240, 255, 0.15); 
@@ -86,7 +86,6 @@
             z-index: 10;
         }
 
-        /* FLOATING ANIMATIONS FOR CARDS */
         .float-fast { animation: float-anim 4s ease-in-out infinite; }
         .float-medium { animation: float-anim 6s ease-in-out infinite 1s; }
         .float-slow { animation: float-anim 8s ease-in-out infinite 2s; }
@@ -97,7 +96,6 @@
             100% { transform: translateY(0px); }
         }
 
-        /* 5-MINUTE NEON FLASH ALERT */
         .flash-alert-active {
             animation: neon-strobe 0.8s ease-in-out infinite !important;
             border-color: #fcee0a !important;
@@ -111,7 +109,6 @@
             100% { filter: brightness(1); transform: scale(1); }
         }
 
-        /* MATRIX RECALCULATING EFFECT (DATA HIDE/SHOW) */
         .recalc-wipe-in {
             animation: wipe-in-anim 0.5s ease-out forwards;
         }
@@ -142,6 +139,17 @@
         .ticker-content:hover { animation-play-state: paused; }
         
         .disconnected-card { border-color: rgba(255, 0, 60, 0.6) !important; background: linear-gradient(135deg, rgba(255, 0, 60, 0.05), rgba(10, 10, 31, 0.8)) !important; box-shadow: 0 0 20px rgba(255,0,60,0.1) !important; filter: grayscale(0.5); }
+
+        .trade-row-win { border-left: 4px solid #39ff14; background: rgba(57, 255, 20, 0.05); }
+        .trade-row-loss { border-left: 4px solid #ff003c; background: rgba(255, 0, 60, 0.05); }
+        .trade-row-win:hover { background: rgba(57, 255, 20, 0.12); }
+        .trade-row-loss:hover { background: rgba(255, 0, 60, 0.12); }
+        .win-badge { color: #39ff14; text-shadow: 0 0 10px rgba(57, 255, 20, 0.6); }
+        .loss-badge { color: #ff003c; text-shadow: 0 0 10px rgba(255, 0, 60, 0.6); }
+        .metric-value { font-size: 2.2rem; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        .signal-buy { color: #39ff14; text-shadow: 0 0 20px rgba(57, 255, 20, .9), 0 0 60px rgba(57, 255, 20, .4); }
+        .signal-sell { color: #ff003c; text-shadow: 0 0 20px rgba(255, 0, 60, .9), 0 0 60px rgba(255, 0, 60, .4); }
+        .signal-neutral { color: #9ca3af; text-shadow: 0 0 20px rgba(255, 255, 255, .2); }
     </style>
 </head>
 <body class="dark antialiased min-h-screen scanlines">
@@ -158,6 +166,7 @@ const GlobeIcon = ({className=""}) => <svg className={className} xmlns="http://w
 const GridIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
 const ListIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
 const CalendarIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+const ChartIcon = ({className=""}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
 
 const MatrixBackground = () => {
     const canvasRef = useRef(null);
@@ -197,42 +206,232 @@ const MatrixBackground = () => {
     return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-[-2] opacity-[0.35]" />;
 };
 
-const TradingViewWidget = () => {
-    const container = useRef(null);
+const MT5_TF_LABELS = {
+    PERIOD_M1: "1M",
+    PERIOD_M5: "5M",
+    PERIOD_M15: "15M",
+    PERIOD_H1: "1H"
+};
+
+// MT5 candle "time" is the broker server's clock. Offset to match PKT if needed.
+const PKT_OFFSET_HOURS = 0;
+const PKT_OFFSET_SECONDS = PKT_OFFSET_HOURS * 3600;
+const shiftTime = (t) => t + PKT_OFFSET_SECONDS;
+const pktTimeFormatter = (time) => {
+    const raw = time.timestamp !== undefined ? time.timestamp : time;
+    const d = new Date(raw * 1000);
+    const hh = d.getUTCHours().toString().padStart(2, '0');
+    const mm = d.getUTCMinutes().toString().padStart(2, '0');
+    return `${hh}:${mm}`;
+};
+
+// ---- Client-side indicator math (for chart overlay) ----
+function calcEma(values, period) {
+    const out = new Array(values.length).fill(null);
+    if (values.length < period) return out;
+    const k = 2 / (period + 1);
+    let seed = 0;
+    for (let i = 0; i < period; i++) seed += values[i];
+    seed /= period;
+    out[period - 1] = seed;
+    let ema = seed;
+    for (let i = period; i < values.length; i++) {
+        ema = values[i] * k + ema * (1 - k);
+        out[i] = ema;
+    }
+    return out;
+}
+
+function calcRsi(values, period = 14) {
+    const out = new Array(values.length).fill(null);
+    if (values.length < period + 1) return out;
+    let gains = 0, losses = 0;
+    for (let i = 1; i <= period; i++) {
+        const change = values[i] - values[i - 1];
+        if (change > 0) gains += change; else losses -= change;
+    }
+    let avgGain = gains / period, avgLoss = losses / period;
+    out[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    for (let i = period + 1; i < values.length; i++) {
+        const change = values[i] - values[i - 1];
+        const gain = change > 0 ? change : 0;
+        const loss = change < 0 ? -change : 0;
+        avgGain = (avgGain * (period - 1) + gain) / period;
+        avgLoss = (avgLoss * (period - 1) + loss) / period;
+        out[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    }
+    return out;
+}
+
+const LiveMt5Chart = ({ candleMap, symbol, isConnected }) => {
+    const containerRef = useRef(null);
+    const rsiContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    const rsiChartRef = useRef(null);
+    const seriesRef = useRef(null);
+    const emaFastRef = useRef(null);
+    const emaSlowRef = useRef(null);
+    const rsiSeriesRef = useRef(null);
+    const [activeTf, setActiveTf] = useState("PERIOD_M5");
+    const syncingRef = useRef(false);
+
     useEffect(() => {
-        if (!container.current) return;
-        container.current.innerHTML = '';
-        const script = document.createElement("script");
-        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-        script.type = "text/javascript";
-        script.async = true;
-        script.innerHTML = `
-          {
-            "width": "100%",
-            "height": "400",
-            "symbol": "FX:EURUSD",
-            "interval": "5",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "enable_publishing": false,
-            "backgroundColor": "rgba(3, 0, 20, 0)",
-            "gridColor": "rgba(0, 240, 255, 0.05)",
-            "hide_top_toolbar": false,
-            "hide_legend": false,
-            "save_image": false,
-            "allow_symbol_change": true,
-            "hide_side_toolbar": false,
-            "studies": [ "MACD@tv-basicstudies", "RSI@tv-basicstudies", "BB@tv-basicstudies" ],
-            "container_id": "tradingview_widget"
-          }
-        `;
-        container.current.appendChild(script);
+        if (!containerRef.current || chartRef.current) return;
+
+        const sharedOptions = {
+            layout: {
+                background: { type: 'solid', color: 'transparent' },
+                textColor: '#9ca3af',
+                fontFamily: 'Courier New, monospace',
+            },
+            grid: {
+                vertLines: { color: 'rgba(0, 240, 255, 0.05)' },
+                horzLines: { color: 'rgba(0, 240, 255, 0.05)' },
+            },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        };
+
+        const chart = LightweightCharts.createChart(containerRef.current, {
+            ...sharedOptions,
+            width: containerRef.current.clientWidth,
+            height: 480,
+            rightPriceScale: { borderColor: 'rgba(0, 240, 255, 0.2)' },
+            timeScale: {
+                borderColor: 'rgba(0, 240, 255, 0.2)',
+                timeVisible: true,
+                secondsVisible: false,
+                tickMarkFormatter: pktTimeFormatter,
+            },
+            handleScroll: true,
+            handleScale: true,
+        });
+        const series = chart.addCandlestickSeries({
+            upColor: '#39ff14',
+            downColor: '#ff003c',
+            borderVisible: false,
+            wickUpColor: '#39ff14',
+            wickDownColor: '#ff003c',
+        });
+        const emaFast = chart.addLineSeries({ color: '#fcee0a', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, title: 'EMA9' });
+        const emaSlow = chart.addLineSeries({ color: '#bd00ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, title: 'EMA21' });
+
+        const rsiChart = LightweightCharts.createChart(rsiContainerRef.current, {
+            ...sharedOptions,
+            width: rsiContainerRef.current.clientWidth,
+            height: 140,
+            rightPriceScale: { borderColor: 'rgba(0, 240, 255, 0.2)', scaleMargins: { top: 0.15, bottom: 0.15 } },
+            timeScale: {
+                borderColor: 'rgba(0, 240, 255, 0.2)',
+                timeVisible: true,
+                secondsVisible: false,
+                tickMarkFormatter: pktTimeFormatter,
+            },
+            handleScroll: true,
+            handleScale: true,
+        });
+        const rsiSeries = rsiChart.addLineSeries({ color: '#00f0ff', lineWidth: 2, priceLineVisible: false, lastValueVisible: true });
+        rsiSeries.createPriceLine({ price: 70, color: 'rgba(255,0,60,0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: '70' });
+        rsiSeries.createPriceLine({ price: 30, color: 'rgba(57,255,20,0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: '30' });
+
+        // Sync time scales
+        const syncTimeScales = (source, target) => {
+            source.timeScale().subscribeVisibleLogicalRangeChange(range => {
+                if (syncingRef.current || !range) return;
+                syncingRef.current = true;
+                target.timeScale().setVisibleLogicalRange(range);
+                syncingRef.current = false;
+            });
+        };
+        syncTimeScales(chart, rsiChart);
+        syncTimeScales(rsiChart, chart);
+
+        chartRef.current = chart;
+        rsiChartRef.current = rsiChart;
+        seriesRef.current = series;
+        emaFastRef.current = emaFast;
+        emaSlowRef.current = emaSlow;
+        rsiSeriesRef.current = rsiSeries;
+
+        const handleResize = () => {
+            if (containerRef.current && chartRef.current) {
+                chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
+            }
+            if (rsiContainerRef.current && rsiChartRef.current) {
+                rsiChartRef.current.applyOptions({ width: rsiContainerRef.current.clientWidth });
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            chart.remove();
+            rsiChart.remove();
+            chartRef.current = null;
+        };
     }, []);
+
+    useEffect(() => {
+        const key = `${symbol}_${activeTf}`;
+        const candles = candleMap[key];
+        if (!seriesRef.current || !candles || candles.length === 0) return;
+
+        const sorted = [...candles].sort((a, b) => a.time - b.time);
+        const closes = sorted.map(c => c.close);
+
+        const ohlc = sorted.map(c => ({ time: shiftTime(c.time), open: c.open, high: c.high, low: c.low, close: c.close }));
+        seriesRef.current.setData(ohlc);
+
+        const ema9 = calcEma(closes, 9);
+        const ema21 = calcEma(closes, 21);
+        emaFastRef.current.setData(sorted.map((c, i) => ema9[i] !== null ? { time: shiftTime(c.time), value: ema9[i] } : null).filter(Boolean));
+        emaSlowRef.current.setData(sorted.map((c, i) => ema21[i] !== null ? { time: shiftTime(c.time), value: ema21[i] } : null).filter(Boolean));
+
+        const rsiVals = calcRsi(closes, 14);
+        rsiSeriesRef.current.setData(sorted.map((c, i) => rsiVals[i] !== null ? { time: shiftTime(c.time), value: rsiVals[i] } : null).filter(Boolean));
+
+        chartRef.current.timeScale().fitContent();
+        rsiChartRef.current.timeScale().fitContent();
+    }, [candleMap, symbol, activeTf]);
+
+    const latestKey = `${symbol}_${activeTf}`;
+    const latestCandles = candleMap[latestKey];
+    const lastClose = latestCandles && latestCandles.length ? latestCandles[latestCandles.length - 1].close : null;
+
     return (
-        <div className="w-full h-[400px] cyber-panel float-slow overflow-hidden">
-            <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}></div>
+        <div className={`cyber-panel float-slow overflow-hidden ${!isConnected ? 'disconnected-card' : ''}`}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-cyber-cyan/30">
+                <div className="flex items-center gap-3">
+                    <ActivityIcon className="text-cyber-cyan" />
+                    <h2 className="font-display text-lg tracking-[0.1em] text-white">{symbol} — LIVE MT5 FEED</h2>
+                    <span className="text-[10px] font-mono text-gray-500 border border-gray-700 px-2 py-0.5 rounded">EMA9/21 · RSI(14) · PKT</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    {Object.keys(MT5_TF_LABELS).map(tf => (
+                        <button
+                            key={tf}
+                            onClick={() => setActiveTf(tf)}
+                            className={`px-3 py-1 text-xs font-mono font-bold rounded border transition-all ${activeTf === tf ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan' : 'border-gray-700 text-gray-400 hover:border-cyber-cyan/50'}`}
+                        >
+                            {MT5_TF_LABELS[tf]}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            {!isConnected ? (
+                <div className="h-[620px] flex items-center justify-center font-mono text-cyber-pink font-bold">
+                    DISCONNECTED - AWAITING MT5 STREAM...
+                </div>
+            ) : (
+                <div className="relative">
+                    {lastClose && (
+                        <div className="absolute top-2 right-4 z-10 font-mono text-sm text-white bg-black/60 px-3 py-1 rounded border border-cyber-cyan/30">
+                            LAST: <span className="text-cyber-cyan font-bold">{lastClose.toFixed(5)}</span>
+                        </div>
+                    )}
+                    <div ref={containerRef} className="w-full" />
+                    <div className="px-3 pt-2 pb-1 text-[10px] font-mono text-gray-500 border-t border-gray-800">RSI(14)</div>
+                    <div ref={rsiContainerRef} className="w-full" />
+                </div>
+            )}
         </div>
     );
 };
@@ -341,17 +540,12 @@ const EconomicCalendar = () => {
 const LiveSignalFeed = ({ signals, isConnected }) => {
     const [isFlashing, setIsFlashing] = useState(false);
 
-    // 5-Minute Flash Trigger Logic
     useEffect(() => {
         if (!isConnected) return;
         const flashTimer = setInterval(() => {
             setIsFlashing(true);
-            // Turn off flash after 6 seconds
-            setTimeout(() => {
-                setIsFlashing(false);
-            }, 6000);
-        }, 300000); // 300,000ms = 5 minutes
-
+            setTimeout(() => { setIsFlashing(false); }, 6000);
+        }, 300000);
         return () => clearInterval(flashTimer);
     }, [isConnected]);
 
@@ -556,19 +750,160 @@ const formatTimeLeft = (seconds) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
+// ---- Strategy Tester Tab Component (now with 5 strategies: core1, core2, core3, core4, scanner) ----
+const StrategyTesterDashboard = ({ isConnected, core1, core2, core3, core4, history1, history2, history3, history4, scanHistory }) => {
+    const computeStats = (history) => {
+        if (!history || history.length === 0) return { total: 0, correct: 0, winRate: 0 };
+        const total = history.length;
+        const correct = history.filter(h => h.accuracy === 100).length;
+        const winRate = total > 0 ? (correct / total * 100) : 0;
+        return { total, correct, winRate };
+    };
+
+    const stats1 = computeStats(history1);
+    const stats2 = computeStats(history2);
+    const stats3 = computeStats(history3);
+    const stats4 = computeStats(history4);
+    const statsScan = computeStats(scanHistory);
+
+    const renderHistoryTable = (history, label) => {
+        if (!history || history.length === 0) {
+            return <div className="text-gray-500 text-sm font-mono py-4 text-center">No predictions yet.</div>;
+        }
+        const recent = [...history].reverse().slice(0, 10);
+        return (
+            <div className="overflow-x-auto max-h-[200px] overflow-y-auto terminal-scroll">
+                <table className="w-full text-xs font-mono">
+                    <thead className="text-gray-500 border-b border-gray-800">
+                        <tr>
+                            <th className="text-left py-1 px-2">Time</th>
+                            <th className="text-right py-1 px-2">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {recent.map((h, idx) => {
+                            const win = h.accuracy === 100;
+                            return (
+                                <tr key={idx} className={`border-b border-gray-800/50 ${win ? 'trade-row-win' : 'trade-row-loss'}`}>
+                                    <td className="py-1 px-2 text-gray-400">{new Date(h.time * 1000).toLocaleString()}</td>
+                                    <td className={`py-1 px-2 text-right font-bold ${win ? 'win-badge' : 'loss-badge'}`}>{win ? 'WIN' : 'LOSS'}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    const corePanels = [
+        { id: 'core1', label: 'CORE_01 (EURUSD 5M)', signal: core1, stats: stats1, history: history1, color: 'border-cyber-cyan', textColor: 'text-cyber-cyan', bg: 'bg-cyber-cyan/5' },
+        { id: 'core2', label: 'CORE_02 (ML 5M)', signal: core2, stats: stats2, history: history2, color: 'border-cyber-purple', textColor: 'text-cyber-purple', bg: 'bg-cyber-purple/5' },
+        { id: 'core4', label: 'CORE_04 (SMA 5M)', signal: core4, stats: stats4, history: history4, color: 'border-cyber-yellow', textColor: 'text-cyber-yellow', bg: 'bg-cyber-yellow/5' },
+        { id: 'core3', label: 'CORE_03 (BTCUSD 15M)', signal: core3, stats: stats3, history: history3, color: 'border-cyber-pink', textColor: 'text-cyber-pink', bg: 'bg-cyber-pink/5' },
+    ];
+
+    return (
+        <div className="space-y-8 animate-fade-in-up">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {corePanels.map(p => (
+                    <div key={p.id} className={`cyber-panel p-5 border-t-2 ${p.color} ${p.bg}`}>
+                        <h3 className={`font-display text-sm tracking-widest ${p.textColor} flex items-center gap-2 mb-3`}>
+                            <span className="w-2 h-4 bg-current"></span> {p.label}
+                        </h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-400">Current Signal</span>
+                                <span className={`font-display font-black ${p.signal && p.signal.direction === 'BUY' ? 'signal-buy' : p.signal && p.signal.direction === 'SELL' ? 'signal-sell' : 'signal-neutral'}`}>
+                                    {p.signal ? p.signal.direction : 'NEUTRAL'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-400">Confidence</span>
+                                <span className="font-mono font-bold">{p.signal ? p.signal.confidence : 0}%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-400">Price</span>
+                                <span className="font-mono">{p.signal && typeof p.signal.price === 'number' ? p.signal.price.toFixed(5) : '---'}</span>
+                            </div>
+                            <div className="text-[11px] font-mono text-gray-400 bg-black/40 p-2 rounded border border-gray-700 mt-2 max-h-16 overflow-y-auto">
+                                {p.signal ? p.signal.logic : 'Awaiting data...'}
+                            </div>
+                            <div className="border-t border-gray-800 pt-3 mt-3">
+                                <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-mono">
+                                    <div>
+                                        <div className="text-gray-500">Total</div>
+                                        <div className="text-white font-bold">{p.stats.total}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-gray-500">Correct</div>
+                                        <div className="text-cyber-green font-bold">{p.stats.correct}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-gray-500">Win Rate</div>
+                                        <div className={`font-bold ${p.stats.winRate >= 50 ? 'text-cyber-green' : 'text-cyber-pink'}`}>{p.stats.winRate.toFixed(1)}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-2">
+                                <div className="text-[10px] font-mono text-gray-500 mb-1">Recent Predictions</div>
+                                {renderHistoryTable(p.history, p.id)}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Scanner Panel (15M EURUSD) */}
+            <div className="cyber-panel p-5 border-t-2 border-gray-500">
+                <h3 className="font-display text-sm tracking-widest text-gray-300 flex items-center gap-2 mb-3">
+                    <span className="w-2 h-4 bg-gray-500"></span> SCANNER (EURUSD 15M)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <div className="text-[11px] font-mono text-gray-400 bg-black/40 p-2 rounded border border-gray-700 min-h-[60px]">
+                            {scanHistory && scanHistory.length > 0 ? 
+                                `Last ${scanHistory.length} predictions, Win Rate: ${statsScan.winRate.toFixed(1)}%` :
+                                'Awaiting data...'}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-mono mt-3">
+                            <div>
+                                <div className="text-gray-500">Total</div>
+                                <div className="text-white font-bold">{statsScan.total}</div>
+                            </div>
+                            <div>
+                                <div className="text-gray-500">Correct</div>
+                                <div className="text-cyber-green font-bold">{statsScan.correct}</div>
+                            </div>
+                            <div>
+                                <div className="text-gray-500">Win Rate</div>
+                                <div className={`font-bold ${statsScan.winRate >= 50 ? 'text-cyber-green' : 'text-cyber-pink'}`}>{statsScan.winRate.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-mono text-gray-500 mb-1">Recent Predictions</div>
+                        {renderHistoryTable(scanHistory, 'SCANNER')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ---- Main App ----
 const App = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [tickerQuotes, setTickerQuotes] = useState({});
-    
-    // SERVER CONNECTION STATES
+    const [candleMap, setCandleMap] = useState({});
     const [isConnected, setIsConnected] = useState(false);
 
-    // DYNAMIC DATA STATES (All Default to Disconnected/Empty)
     const defaultDisconnect = { direction: "DISCONNECTED", confidence: 0, logic: "SERVER OFFLINE - AWAITING STREAM...", pair: "---", timeframe: "---" };
 
     const [currentPrediction, setCurrentPrediction] = useState(defaultDisconnect);
     const [neuralPrediction, setNeuralPrediction] = useState(defaultDisconnect);
     const [cryptoPrediction, setCryptoPrediction] = useState(defaultDisconnect);
+    const [smaPrediction, setSmaPrediction] = useState(defaultDisconnect); // new core4
     
     const [oscillatorsData, setOscillatorsData] = useState([]);
     const [maData, setMaData] = useState([]);
@@ -576,6 +911,7 @@ const App = () => {
     const [c1History, setC1History] = useState([]);
     const [c2History, setC2History] = useState([]);
     const [c3History, setC3History] = useState([]);
+    const [c4History, setC4History] = useState([]);
     const [scanHistory, setScanHistory] = useState([]);
     const [scannerFeed, setScannerFeed] = useState([]);
 
@@ -586,15 +922,11 @@ const App = () => {
         { id: 3, msg: "[SYS] Strict-Mode Enforced. Waiting for Python WebSocket connection..." }
     ]);
 
-    // Timers & Refresh States
     const [timeLeft, setTimeLeft] = useState(300);
     const [cryptoTimeLeft, setCryptoTimeLeft] = useState(900);
     const [isCoreRefreshing, setIsCoreRefreshing] = useState(false);
     const [isCryptoRefreshing, setIsCryptoRefreshing] = useState(false);
 
-    const API_KEY = "9f08b18e57af42349b92c1d5e67f8e92";
-
-    // Visual Countdown Clocks
     useEffect(() => {
         const timer = setInterval(() => {
             const now = new Date();
@@ -606,8 +938,6 @@ const App = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // REFRESH DATA EFFECTS
-    // Triggers a 2-second wipe animation when timer reaches exactly 5 mins (300s)
     useEffect(() => {
         if (timeLeft === 300) {
             setIsCoreRefreshing(true);
@@ -622,27 +952,6 @@ const App = () => {
         }
     }, [cryptoTimeLeft]);
 
-    // ONLY FETCH PRICES FOR TICKER
-    useEffect(() => {
-        const fetchQuotes = () => {
-            fetch(`https://api.twelvedata.com/quote?symbol=EUR/USD,GBP/USD,USD/JPY,AUD/USD,BTC/USD&apikey=${API_KEY}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data) {
-                    const newQuotes = {};
-                    Object.keys(data).forEach(s => {
-                        if(data[s] && data[s].close) newQuotes[s] = { price: parseFloat(data[s].close), change: parseFloat(data[s].percent_change) };
-                    });
-                    setTickerQuotes(prev => ({ ...prev, ...newQuotes }));
-                }
-            }).catch(e => {});
-        };
-        fetchQuotes();
-        const quoteInterval = setInterval(fetchQuotes, 60000); // Update ticker every minute
-        return () => clearInterval(quoteInterval);
-    }, []);
-
-    // STRICT WEBSOCKET ENGINE
     useEffect(() => {
         let socket;
         const connectToCore = () => {
@@ -650,14 +959,33 @@ const App = () => {
                 socket = new WebSocket("ws://localhost:8765");
                 socket.onopen = () => {
                     setIsConnected(true);
-                    setTerminalLogs(prev => [...prev, { id: Date.now(), msg: "[NET] Connected to DDY Server Engine. Receiving LIVE Data." }]);
+                    setTerminalLogs(prev => [...prev, { id: Date.now(), msg: "[NET] Connected to DDY Server Engine. Receiving LIVE MT5 Data." }]);
                 };
                 socket.onmessage = (event) => {
                     try {
                         const payload = JSON.parse(event.data);
+
+                        if (payload.type === "ticks") {
+                            setTickerQuotes(prev => {
+                                const next = { ...prev };
+                                payload.data.forEach(t => {
+                                    const prevPrice = next[t.symbol] ? next[t.symbol].price : t.bid;
+                                    const change = prevPrice ? ((t.bid - prevPrice) / prevPrice) * 100 : 0;
+                                    next[t.symbol] = { price: t.bid, ask: t.ask, change };
+                                });
+                                return next;
+                            });
+                        }
+
+                        if (payload.type === "candles") {
+                            const key = `${payload.symbol}_${payload.tf}`;
+                            setCandleMap(prev => ({ ...prev, [key]: payload.candles }));
+                        }
+
                         if (payload.type === "core1") setCurrentPrediction(payload.data);
                         if (payload.type === "core2") setNeuralPrediction(payload.data);
                         if (payload.type === "core3") setCryptoPrediction(payload.data);
+                        if (payload.type === "core4") setSmaPrediction(payload.data);
                         
                         if (payload.type === "scanner") {
                             setScannerFeed(prev => [payload.data, ...prev].slice(0, 8));
@@ -665,10 +993,12 @@ const App = () => {
                         if (payload.type === "osc_data") setOscillatorsData(payload.data);
                         if (payload.type === "ma_data") setMaData(payload.data);
                         
-                        if (payload.type === "history_c1") setC1History(prev => [payload.data, ...prev].slice(0, 10));
-                        if (payload.type === "history_c2") setC2History(prev => [payload.data, ...prev].slice(0, 10));
-                        if (payload.type === "history_c3") setC3History(prev => [payload.data, ...prev].slice(0, 10));
-                        if (payload.type === "history_scan") setScanHistory(prev => [payload.data, ...prev].slice(0, 10));
+                        // History updates
+                        if (payload.type === "history_core1") setC1History(prev => [...prev, payload.data].slice(-300));
+                        if (payload.type === "history_core2") setC2History(prev => [...prev, payload.data].slice(-300));
+                        if (payload.type === "history_core3") setC3History(prev => [...prev, payload.data].slice(-300));
+                        if (payload.type === "history_core4") setC4History(prev => [...prev, payload.data].slice(-300));
+                        if (payload.type === "history_scan") setScanHistory(prev => [...prev, payload.data].slice(-300));
 
                         if (payload.type === "log") {
                             setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now() + Math.random(), msg: payload.msg }]);
@@ -678,13 +1008,15 @@ const App = () => {
                 };
                 socket.onclose = () => {
                     setIsConnected(false);
-                    // FORCE DISCONNECT STATE ON UI
                     setCurrentPrediction(defaultDisconnect);
                     setNeuralPrediction(defaultDisconnect);
                     setCryptoPrediction(defaultDisconnect);
+                    setSmaPrediction(defaultDisconnect);
                     setScannerFeed([]);
                     setOscillatorsData([]);
                     setMaData([]);
+                    setTickerQuotes({});
+                    setCandleMap({});
                     
                     setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now(), msg: "[ERR] Connection Lost. Reconnecting in 3s..." }]);
                     setTimeout(connectToCore, 3000);
@@ -698,7 +1030,6 @@ const App = () => {
     const tickerItems = Object.entries(tickerQuotes);
     const fullTicker = tickerItems.length > 0 ? [...tickerItems, ...tickerItems, ...tickerItems] : [];
 
-    // COLOR HELPER FUNCTION
     const getDirectionColor = (dir) => {
         if (!isConnected || dir === "DISCONNECTED") return "text-cyber-pink";
         if (dir.includes("BUY")) return "text-cyber-green drop-shadow-[0_0_12px_rgba(57,255,20,0.9)]";
@@ -711,18 +1042,19 @@ const App = () => {
             <div className="grid-overlay"></div>
             <MatrixBackground />
             
-            {/* Sliding Ticker */}
             <div className="ticker-wrap w-full overflow-hidden">
                 <div className="ticker-content animate-marquee flex items-center">
-                    {fullTicker.map(([symbol, data], idx) => (
+                    {fullTicker.length > 0 ? fullTicker.map(([symbol, data], idx) => (
                         <div key={`${symbol}-${idx}`} className="flex items-center gap-3 px-8 border-r border-cyber-cyan/30">
                             <span className="font-display font-black text-gray-200 tracking-wider drop-shadow-[0_0_5px_rgba(255,255,255,0.4)]">{symbol}</span>
                             <span className="font-mono text-white text-xl font-bold">{data.price > 0 ? data.price.toFixed(5) : "---"}</span>
                             <span className={`font-mono text-md font-bold flex items-center gap-1 ${data.change >= 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
-                                {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change).toFixed(2)}%
+                                {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change).toFixed(3)}%
                             </span>
                         </div>
-                    ))}
+                    )) : (
+                        <div className="px-8 font-mono text-cyber-pink font-bold">AWAITING LIVE MT5 TICK STREAM...</div>
+                    )}
                 </div>
             </div>
 
@@ -744,6 +1076,9 @@ const App = () => {
                         <button onClick={() => setActiveTab("dashboard")} className={`px-5 py-2.5 rounded border-2 transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.5)] scale-105' : 'bg-black/50 border-gray-700 text-gray-400 hover:border-cyber-cyan/50 hover:text-white'} flex items-center gap-2`}>
                             <ActivityIcon className="w-4 h-4" /> DASHBOARD
                         </button>
+                        <button onClick={() => setActiveTab("tester")} className={`px-5 py-2.5 rounded border-2 transition-all duration-300 ${activeTab === 'tester' ? 'bg-cyber-yellow/20 border-cyber-yellow text-cyber-yellow shadow-[0_0_15px_rgba(252,238,10,0.5)] scale-105' : 'bg-black/50 border-gray-700 text-gray-400 hover:border-cyber-yellow/50 hover:text-white'} flex items-center gap-2`}>
+                            <ChartIcon className="w-4 h-4" /> STRATEGY TESTER
+                        </button>
                         <button onClick={() => setActiveTab("calendar")} className={`px-5 py-2.5 rounded border-2 transition-all duration-300 ${activeTab === 'calendar' ? 'bg-cyber-green/20 border-cyber-green text-cyber-green shadow-[0_0_15px_rgba(57,255,20,0.5)] scale-105' : 'bg-black/50 border-gray-700 text-gray-400 hover:border-cyber-green/50 hover:text-white'} flex items-center gap-2`}>
                             <CalendarIcon className="w-4 h-4" /> CALENDAR
                         </button>
@@ -764,12 +1099,10 @@ const App = () => {
 
                 {activeTab === "dashboard" && (
                     <div className="space-y-8">
-                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                            <div className="xl:col-span-6">
-                                <TradingViewWidget />
-                            </div>
+                        <div className="grid grid-cols-1 gap-8">
+                            <LiveMt5Chart candleMap={candleMap} symbol="EURUSD" isConnected={isConnected} />
 
-                            <div className="xl:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-5 h-full">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                 {/* CORE 01 */}
                                 <div className={`cyber-panel p-5 flex flex-col justify-between border-2 transition-all float-fast ${!isConnected ? 'disconnected-card opacity-80' : 'border-cyber-cyan bg-[rgba(0,240,255,0.03)] shadow-[0_0_20px_rgba(0,240,255,0.15)]'}`}>
                                     <div className="flex justify-between items-center border-b border-gray-800 pb-3">
@@ -780,7 +1113,6 @@ const App = () => {
                                         </div>
                                     </div>
 
-                                    {/* DYNAMIC REFRESH AREA */}
                                     <div className="flex-1 flex flex-col justify-center my-4 text-center relative min-h-[140px]">
                                         {isCoreRefreshing ? (
                                             <div className="glitch-text font-mono text-sm font-black tracking-[0.2em]">
@@ -789,11 +1121,9 @@ const App = () => {
                                         ) : (
                                             <div className="recalc-wipe-in flex flex-col h-full justify-between">
                                                 <div>
-                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_01: LOCAL SIGNAL</span>
+                                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_01: EURUSD 5M STRATEGY</span>
                                                     <h1 className={`text-3xl font-display font-black tracking-widest uppercase mb-1 ${getDirectionColor(currentPrediction.direction)}`}>
-                                                        {currentPrediction.direction !== "DISCONNECTED" && currentPrediction.direction === neuralPrediction.direction && currentPrediction.direction !== "NEUTRAL"
-                                                            ? `STRONG ${currentPrediction.direction} ${currentPrediction.direction.includes('BUY') ? '⏫' : '⏬'}` 
-                                                            : currentPrediction.direction}
+                                                        {currentPrediction.direction}
                                                     </h1>
                                                     <div className="flex justify-center items-center gap-4">
                                                         <span className={`text-lg font-mono font-black tracking-widest ${isConnected ? 'text-cyber-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]' : 'text-cyber-pink'}`}>{currentPrediction.confidence}%</span>
@@ -823,7 +1153,6 @@ const App = () => {
                                         </div>
                                     </div>
 
-                                    {/* DYNAMIC REFRESH AREA */}
                                     <div className="flex-1 flex flex-col justify-center my-4 text-center relative min-h-[140px]">
                                         {isCoreRefreshing ? (
                                             <div className="glitch-text font-mono text-sm font-black tracking-[0.2em] text-cyber-purple">
@@ -834,9 +1163,7 @@ const App = () => {
                                                 <div>
                                                     <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${isConnected ? 'text-gray-400' : 'text-cyber-pink'}`}>CORE_02: NEURAL ML</span>
                                                     <h1 className={`text-3xl font-display font-black tracking-widest uppercase mb-1 ${getDirectionColor(neuralPrediction.direction)}`}>
-                                                        {neuralPrediction.direction !== "DISCONNECTED" && neuralPrediction.direction === currentPrediction.direction && neuralPrediction.direction !== "NEUTRAL"
-                                                            ? `STRONG ${neuralPrediction.direction} ${neuralPrediction.direction.includes('BUY') ? '⏫' : '⏬'}` 
-                                                            : neuralPrediction.direction}
+                                                        {neuralPrediction.direction}
                                                     </h1>
                                                     <div className="flex justify-center items-center gap-4">
                                                         <span className={`text-lg font-mono font-black tracking-widest ${isConnected ? 'text-cyber-purple drop-shadow-[0_0_5px_rgba(189,0,255,0.8)]' : 'text-cyber-pink'}`}>{neuralPrediction.confidence}%</span>
@@ -866,7 +1193,6 @@ const App = () => {
                                         </div>
                                     </div>
 
-                                    {/* DYNAMIC REFRESH AREA */}
                                     <div className="flex-1 flex flex-col justify-center my-4 text-center relative min-h-[140px]">
                                         {isCryptoRefreshing ? (
                                             <div className="glitch-text font-mono text-sm font-black tracking-[0.2em] text-cyber-yellow">
@@ -901,6 +1227,21 @@ const App = () => {
                     </div>
                 )}
                 
+                {activeTab === "tester" && (
+                    <StrategyTesterDashboard
+                        isConnected={isConnected}
+                        core1={currentPrediction}
+                        core2={neuralPrediction}
+                        core3={cryptoPrediction}
+                        core4={smaPrediction}
+                        history1={c1History}
+                        history2={c2History}
+                        history3={c3History}
+                        history4={c4History}
+                        scanHistory={scanHistory}
+                    />
+                )}
+
                 {activeTab === "calendar" && <EconomicCalendar />}
                 {activeTab === "heatmap" && <HeatMapWidget />}
                 {activeTab === "screener" && <MarketOverviewWidget />}
@@ -934,11 +1275,11 @@ const App = () => {
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">TRUE POS</div>
-                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c1History.filter(x => x.accuracy > 50).length}</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c1History.filter(x => x.accuracy === 100).length}</div>
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">ACCURACY</div>
-                                        <div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{c1History.length > 0 ? Math.round((c1History.filter(x => x.accuracy > 50).length / c1History.length) * 100) : 0}%</div>
+                                        <div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{c1History.length > 0 ? Math.round((c1History.filter(x => x.accuracy === 100).length / c1History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
@@ -953,11 +1294,11 @@ const App = () => {
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">TRUE PRED</div>
-                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c2History.filter(x => x.accuracy > 50).length}</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c2History.filter(x => x.accuracy === 100).length}</div>
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">ACCURACY</div>
-                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c2History.length > 0 ? Math.round((c2History.filter(x => x.accuracy > 50).length / c2History.length) * 100) : 0}%</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c2History.length > 0 ? Math.round((c2History.filter(x => x.accuracy === 100).length / c2History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
@@ -972,11 +1313,30 @@ const App = () => {
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">BREAKOUTS</div>
-                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c3History.filter(x => x.accuracy > 70).length}</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c3History.filter(x => x.accuracy === 100).length}</div>
                                     </div>
                                     <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
                                         <div className="text-gray-500 text-[10px] mb-1">HIT RATE</div>
-                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c3History.length > 0 ? Math.round((c3History.filter(x => x.accuracy > 70).length / c3History.length) * 100) : 0}%</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c3History.length > 0 ? Math.round((c3History.filter(x => x.accuracy === 100).length / c3History.length) * 100) : 0}%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Core 04 Tracker Box */}
+                            <div className="cyber-panel p-5 border-l-4 border-cyber-yellow bg-black/40 float-medium hover:bg-black/60 transition-colors">
+                                <h3 className="font-display font-black text-sm tracking-widest text-cyber-yellow border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">CORE_04 SMA CROSSOVER (5M)</h3>
+                                <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs font-bold">
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">TOTAL</div>
+                                        <div className="text-xl font-black text-white">{c4History.length}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">TRUE POS</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c4History.filter(x => x.accuracy === 100).length}</div>
+                                    </div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors">
+                                        <div className="text-gray-500 text-[10px] mb-1">ACCURACY</div>
+                                        <div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c4History.length > 0 ? Math.round((c4History.filter(x => x.accuracy === 100).length / c4History.length) * 100) : 0}%</div>
                                     </div>
                                 </div>
                             </div>
@@ -987,9 +1347,8 @@ const App = () => {
                                 <div className="h-full overflow-y-auto terminal-scroll text-[12px] font-mono divide-y divide-gray-800/50 pr-2">
                                     {scanHistory.length > 0 ? scanHistory.map((h, i) => (
                                         <div key={i} className="py-2 flex justify-between items-center hover:bg-white/5 px-2 rounded transition-colors">
-                                            <span className="text-gray-500 font-bold">{h.time}</span>
-                                            <span className="text-cyber-cyan font-black tracking-widest">{h.target}</span>
-                                            <span className={`font-black ${h.result === "VALID" ? "text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]" : "text-cyber-pink"}`}>{h.result}</span>
+                                            <span className="text-gray-500 font-bold">{new Date(h.time * 1000).toLocaleString()}</span>
+                                            <span className={`font-black ${h.accuracy === 100 ? "text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]" : "text-cyber-pink"}`}>{h.accuracy === 100 ? "WIN" : "LOSS"}</span>
                                         </div>
                                     )) : (
                                         <div className="text-center text-gray-600 mt-4 font-bold tracking-widest">AWAITING MATRIX DATA...</div>
