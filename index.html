@@ -444,6 +444,9 @@ const App = () => {
     const [isCoreRefreshing, setIsCoreRefreshing] = useState(false);
     const [isCryptoRefreshing, setIsCryptoRefreshing] = useState(false);
 
+    // **NEW STATES FOR TRAINING CORE FIX**
+    const [trainingStats, setTrainingStats] = useState({core1: {total: 0, correct: 0}, core2: {total: 0, correct: 0}});
+
     useEffect(() => {
         const timer = setInterval(() => {
             const now = new Date();
@@ -537,6 +540,25 @@ const App = () => {
                             setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now() + Math.random(), msg: payload.msg }]);
                             if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
                         }
+
+                        // **NEW HANDLERS FOR TRAINING CORE**
+                        if (payload.type === "training_log") {
+                            setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now() + Math.random(), msg: payload.msg }]);
+                            if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                        }
+                        if (payload.type === "training_stats") {
+                            setTrainingStats(prev => {
+                                const core = payload.core;
+                                const current = prev[core] || {total: 0, correct: 0};
+                                const isWin = payload.data.accuracy === 100;
+                                return { ...prev, [core]: { total: current.total + 1, correct: current.correct + (isWin ? 1 : 0) } };
+                            });
+                            // Also log the single result to the console/terminal
+                            const resultMsg = payload.data.accuracy === 100 ? '✅ WIN' : '❌ LOSS';
+                            setTerminalLogs(prev => [...prev.slice(-40), { id: Date.now() + Math.random(), msg: `[AI_${payload.core.toUpperCase()}] Pred: ${payload.data.prediction} | Act: ${payload.data.actual} | ${resultMsg}` }]);
+                            if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                        }
+
                     } catch (err) {
                         console.error("[WS] Message parse error:", err);
                     }
@@ -883,22 +905,22 @@ const App = () => {
                             </div>
                         </div>
                         <div className="lg:col-span-5 flex flex-col gap-5 h-[650px] overflow-y-auto terminal-scroll pr-2">
-                            {/* CORE_01 EVAL */}
+                            {/* CORE_01 EVAL - UPDATED TO USE REAL AI TRAINING STATS */}
                             <div className="cyber-panel p-5 border-l-4 border-cyber-cyan bg-black/40 float-medium hover:bg-black/60 transition-colors">
                                 <h3 className="font-display font-black text-sm tracking-widest text-cyber-cyan border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]">CORE_01 ENGINE EVALUATION (5M)</h3>
                                 <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs font-bold">
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-cyan/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TOTAL EVAL</div><div className="text-xl font-black text-white">{c1History.length}</div></div>
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TRUE POS</div><div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c1History.filter(x => x.accuracy === 100).length}</div></div>
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">ACCURACY</div><div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{c1History.length > 0 ? Math.round((c1History.filter(x => x.accuracy === 100).length / c1History.length) * 100) : 0}%</div></div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-cyan/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TOTAL EVAL</div><div className="text-xl font-black text-white">{trainingStats.core1.total}</div></div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TRUE POS</div><div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{trainingStats.core1.correct}</div></div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-yellow/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">ACCURACY</div><div className="text-xl font-black text-cyber-yellow drop-shadow-[0_0_5px_rgba(252,238,10,0.5)]">{trainingStats.core1.total > 0 ? Math.round((trainingStats.core1.correct / trainingStats.core1.total) * 100) : 0}%</div></div>
                                 </div>
                             </div>
-                            {/* CORE_02 EVAL */}
+                            {/* CORE_02 EVAL - UPDATED TO USE REAL AI TRAINING STATS */}
                             <div className="cyber-panel p-5 border-l-4 border-cyber-purple bg-black/40 float-slow hover:bg-black/60 transition-colors">
                                 <h3 className="font-display font-black text-sm tracking-widest text-cyber-purple border-b border-gray-800 pb-3 mb-4 drop-shadow-[0_0_5px_rgba(189,0,255,0.5)]">CORE_02 NEURAL ML MATRIX (5M)</h3>
                                 <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs font-bold">
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-purple/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TOTAL RUNS</div><div className="text-xl font-black text-white">{c2History.length}</div></div>
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TRUE PRED</div><div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c2History.filter(x => x.accuracy === 100).length}</div></div>
-                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">ACCURACY</div><div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{c2History.length > 0 ? Math.round((c2History.filter(x => x.accuracy === 100).length / c2History.length) * 100) : 0}%</div></div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-purple/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TOTAL RUNS</div><div className="text-xl font-black text-white">{trainingStats.core2.total}</div></div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">TRUE PRED</div><div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{trainingStats.core2.correct}</div></div>
+                                    <div className="p-3 bg-black/70 rounded border border-gray-800 hover:border-cyber-green/50 transition-colors"><div className="text-gray-500 text-[10px] mb-1">ACCURACY</div><div className="text-xl font-black text-cyber-green drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]">{trainingStats.core2.total > 0 ? Math.round((trainingStats.core2.correct / trainingStats.core2.total) * 100) : 0}%</div></div>
                                 </div>
                             </div>
                             {/* CORE_03 EVAL */}
